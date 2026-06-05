@@ -1,0 +1,40 @@
+import type { Theme } from "@/lib/types";
+
+export const themes: Record<Theme, Record<string, string>> = {
+  claude: {
+    "--bg": "#1a1a1a",
+    "--sidebar-bg": "#141414",
+    "--input-bg": "#2a2a2a",
+    "--accent": "#d4a853",
+    "--text": "#ececec",
+    "--text-muted": "#888",
+    "--bubble-user": "#2a2a2a",
+    "--font": "'Inter', sans-serif",
+    "--border": "#333",
+    "--scrollbar": "#333",
+  },
+  gpt: {
+    "--bg": "#ffffff",
+    "--sidebar-bg": "#f7f7f8",
+    "--input-bg": "#f4f4f4",
+    "--accent": "#10a37f",
+    "--text": "#0d0d0d",
+    "--text-muted": "#666",
+    "--bubble-user": "#f4f4f4",
+    "--font": "system-ui, sans-serif",
+    "--border": "#e5e5e5",
+    "--scrollbar": "#d9d9d9",
+  },
+  grok: {
+    "--bg": "#000000",
+    "--sidebar-bg": "#0a0a0a",
+    "--input-bg": "#111111",
+    "--accent": "#ff4444",
+    "--text": "#ffffff",
+    "--text-muted": "#666",
+    "--bubble-user": "#111111",
+    "--font": "'JetBrains Mono', monospace",
+    "--border": "#1a1a1a",
+    "--scrollbar": "#1a1a1a",
+  },
+};
