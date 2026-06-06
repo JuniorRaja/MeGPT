@@ -1,3 +1,5 @@
+import json
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
 import httpx
@@ -15,6 +17,12 @@ _PRICING: dict[str, tuple[float, float]] = {
 def _compute_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
     input_price, output_price = _PRICING.get(model, (0.0, 0.0))
     return (prompt_tokens * input_price + completion_tokens * output_price) / 1_000_000
+
+
+def estimate_cost(model: str, input_text: str, output_text: str) -> float:
+    prompt_tokens = max(1, len(input_text) // 4)
+    completion_tokens = max(1, len(output_text) // 4)
+    return _compute_cost(model, prompt_tokens, completion_tokens)
 
 
 @dataclass
@@ -43,7 +51,8 @@ class LiteLLMService:
         payload = {
             "model": model,
             "messages": messages,
-            "temperature": 0.7,
+            "temperature": 0.85,
+            "max_tokens": 600,
         }
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
@@ -66,6 +75,42 @@ class LiteLLMService:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
+
+
+    async def stream(
+        self,
+        messages: list[dict],
+        model: str | None = None,
+    ) -> AsyncGenerator[str, None]:
+        model = model or settings.default_model
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.85,
+            "max_tokens": 600,
+            "stream": True,
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            async with client.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    chunk = line[6:]
+                    if chunk == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(chunk)
+                        delta = data["choices"][0]["delta"].get("content", "")
+                        if delta:
+                            yield delta
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        continue
 
 
 litellm_service = LiteLLMService()
