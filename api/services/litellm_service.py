@@ -8,6 +8,7 @@ from config import settings
 
 # Price per 1M tokens (input, output) in USD
 _PRICING: dict[str, tuple[float, float]] = {
+    "selfgpt-turbo": (0.05,   0.08),   # groq/llama-3.1-8b-instant
     "selfgpt-free":  (0.59,   0.79),   # groq/llama-3.3-70b-versatile
     "selfgpt-smart": (0.80,   4.00),   # claude-haiku-4-5
     "selfgpt-deep":  (3.00,  15.00),   # claude-sonnet-4-5

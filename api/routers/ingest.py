@@ -33,7 +33,7 @@ def _split_into_chunks(text: str, chunk_size: int = CHUNK_TOKENS, overlap: int =
 
 
 @router.post("", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit("120/minute")
 async def ingest(request: Request, req: IngestRequest) -> IngestResponse:
     chunks = _split_into_chunks(req.text)
     if not chunks:

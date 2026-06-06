@@ -1,4 +1,9 @@
 model_list:
+  - model_name: selfgpt-turbo
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: os.environ/GROQ_API_KEY
+
   - model_name: selfgpt-free
     litellm_params:
       model: groq/llama-3.3-70b-versatile

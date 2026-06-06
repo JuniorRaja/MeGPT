@@ -125,9 +125,9 @@ curl -X POST http://localhost:8000/ingest \
 - [ ] Test retrieval quality with 20 benchmark queries
 
 ### Week 3 — Chat Quality
-- [ ] Multi-turn conversation with session memory
+- [x] Multi-turn conversation with session memory
 - [x] System prompt iteration and persona tuning
-- [ ] Model routing (fast for simple, deep for complex)
+- [x] Model routing (fast for simple, deep for complex)
 
 ### Week 4 — UI Polish
 - [x] Streaming responses (SSE)
