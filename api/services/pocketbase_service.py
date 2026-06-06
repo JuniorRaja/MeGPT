@@ -34,7 +34,7 @@ class PocketBaseService:
             if resp.status_code == 401:
                 token = await self._get_token(force=True)
                 resp = await client.get(url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
-        return resp
+            return resp
 
     async def save_message(
         self,
@@ -90,8 +90,11 @@ class PocketBaseService:
                 params={"sort": "-id", "perPage": limit, "page": 1},
             )
             resp.raise_for_status()
-            return resp.json().get("items", [])
-        except Exception:
+            items = resp.json().get("items", [])
+            logger.info(f"get_sessions returned {len(items)} items")
+            return items
+        except Exception as e:
+            logger.exception(f"get_sessions failed: {e}")
             return []
 
     async def get_messages(self, session_id: str) -> list[dict]:
@@ -100,13 +103,16 @@ class PocketBaseService:
                 f"{self.base_url}/api/collections/messages/records",
                 params={
                     "filter": f'session_id="{session_id}"',
-                    "sort": "+id",
+                    "sort": "id",
                     "perPage": 200,
                 },
             )
             resp.raise_for_status()
-            return resp.json().get("items", [])
-        except Exception:
+            items = resp.json().get("items", [])
+            logger.info(f"get_messages for {session_id}: {len(items)} items")
+            return items
+        except Exception as e:
+            logger.exception(f"get_messages failed: {e}")
             return []
 
     async def save_feedback(
