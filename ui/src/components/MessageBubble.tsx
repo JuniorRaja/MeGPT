@@ -20,9 +20,14 @@ function formatCost(usd: number): string {
 }
 
 function modelShortName(model: string): string {
-  if (model.includes("llama")) return "groq";
-  if (model.includes("claude")) return "claude";
-  if (model.includes("gpt-4o")) return "gpt-4o";
+  if (model.includes("llama-4-scout")) return "Llama 4 Scout";
+  if (model.includes("llama-3.3-70b")) return "Llama 3.3 70B";
+  if (model.includes("llama-3.1-8b")) return "Llama 3.1 8B";
+  if (model.includes("qwen3-32b")) return "Qwen3 32B";
+  if (model.includes("allam-2-7b")) return "Allam 2 7B";
+  if (model.includes("haiku")) return "Claude Haiku";
+  if (model.includes("sonnet")) return "Claude Sonnet";
+  if (model.includes("claude")) return "Claude";
   return model.split("/").pop() ?? model;
 }
 
