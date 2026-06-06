@@ -2,9 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Default (Claude) theme ─────────────────────────────────────────────── */
+/* ── Claude Light (default) ─────────────────────────────────────────────── */
 :root,
-[data-theme="claude"] {
+[data-theme="claude"][data-mode="light"] {
+  --bg: #ece7df;
+  --sidebar-bg: #f0ebe4;
+  --input-bg: #ffffff;
+  --accent: #c45a24;
+  --accent-hover: #a84820;
+  --text: #1a1714;
+  --text-muted: #8c8278;
+  --bubble-user: #ffffff;
+  --bubble-assistant: transparent;
+  --font: var(--loaded-poppins), sans-serif;
+  --font-heading: var(--loaded-roboto-serif), Georgia, serif;
+  --border: #ddd6cc;
+  --scrollbar: #d4ccc2;
+  --radius-bubble: 22px;
+  --shadow-input: 0 1px 6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --input-border: #e0d9d0;
+  --hover-bg: #e6e0d7;
+  --active-bg: #ddd6cc;
+}
+
+/* ── Claude Dark ────────────────────────────────────────────────────────── */
+[data-theme="claude"][data-mode="dark"] {
   --bg: #1c1917;
   --sidebar-bg: #141210;
   --input-bg: #2c2925;
@@ -13,16 +35,20 @@
   --text: #f0ede8;
   --text-muted: #7c7168;
   --bubble-user: #2c2925;
-  --font: var(--loaded-inter), sans-serif;
-  --font-heading: Georgia, serif;
+  --bubble-assistant: transparent;
+  --font: var(--loaded-poppins), sans-serif;
+  --font-heading: var(--loaded-roboto-serif), Georgia, serif;
   --border: #3a3530;
   --scrollbar: #3a3530;
-  --radius-bubble: 18px;
+  --radius-bubble: 22px;
   --shadow-input: 0 0 0 1px #3a3530, 0 2px 8px rgba(0, 0, 0, 0.4);
+  --input-border: #3a3530;
+  --hover-bg: #2c2925;
+  --active-bg: #3a3530;
 }
 
-/* ── GPT theme ──────────────────────────────────────────────────────────── */
-[data-theme="gpt"] {
+/* ── GPT Light ──────────────────────────────────────────────────────────── */
+[data-theme="gpt"][data-mode="light"] {
   --bg: #ffffff;
   --sidebar-bg: #f9f9f9;
   --input-bg: #f4f4f4;
@@ -31,16 +57,64 @@
   --text: #0d0d0d;
   --text-muted: #8e8ea0;
   --bubble-user: #f4f4f4;
+  --bubble-assistant: transparent;
   --font: var(--loaded-dm-sans), system-ui, sans-serif;
   --font-heading: inherit;
   --border: #ececec;
   --scrollbar: #d9d9e3;
   --radius-bubble: 12px;
   --shadow-input: 0 0 0 1px #d9d9e3;
+  --input-border: #d9d9e3;
+  --hover-bg: #f0f0f0;
+  --active-bg: #e8e8e8;
 }
 
-/* ── Grok theme ─────────────────────────────────────────────────────────── */
-[data-theme="grok"] {
+/* ── GPT Dark ───────────────────────────────────────────────────────────── */
+[data-theme="gpt"][data-mode="dark"] {
+  --bg: #212121;
+  --sidebar-bg: #171717;
+  --input-bg: #2f2f2f;
+  --accent: #10a37f;
+  --accent-hover: #0d8f6e;
+  --text: #ececec;
+  --text-muted: #8e8ea0;
+  --bubble-user: #2f2f2f;
+  --bubble-assistant: transparent;
+  --font: var(--loaded-dm-sans), system-ui, sans-serif;
+  --font-heading: inherit;
+  --border: #3a3a3a;
+  --scrollbar: #4a4a4a;
+  --radius-bubble: 12px;
+  --shadow-input: 0 0 0 1px #3a3a3a;
+  --input-border: #3a3a3a;
+  --hover-bg: #2f2f2f;
+  --active-bg: #3a3a3a;
+}
+
+/* ── Grok Light ─────────────────────────────────────────────────────────── */
+[data-theme="grok"][data-mode="light"] {
+  --bg: #ffffff;
+  --sidebar-bg: #f5f5f5;
+  --input-bg: #f0f0f0;
+  --accent: #e53935;
+  --accent-hover: #ff5252;
+  --text: #1a1a1a;
+  --text-muted: #666666;
+  --bubble-user: #f0f0f0;
+  --bubble-assistant: transparent;
+  --font: var(--loaded-ibm-mono), monospace;
+  --font-heading: var(--loaded-ibm-sans), sans-serif;
+  --border: #e0e0e0;
+  --scrollbar: #d0d0d0;
+  --radius-bubble: 6px;
+  --shadow-input: 0 0 0 1px #e0e0e0;
+  --input-border: #e0e0e0;
+  --hover-bg: #eaeaea;
+  --active-bg: #e0e0e0;
+}
+
+/* ── Grok Dark ──────────────────────────────────────────────────────────── */
+[data-theme="grok"][data-mode="dark"] {
   --bg: #000000;
   --sidebar-bg: #0a0a0a;
   --input-bg: #0f0f0f;
@@ -49,12 +123,16 @@
   --text: #f5f5f5;
   --text-muted: #555;
   --bubble-user: #111;
+  --bubble-assistant: transparent;
   --font: var(--loaded-ibm-mono), monospace;
   --font-heading: var(--loaded-ibm-sans), sans-serif;
   --border: #1f1f1f;
   --scrollbar: #1f1f1f;
   --radius-bubble: 6px;
   --shadow-input: 0 0 0 1px #1f1f1f;
+  --input-border: #1f1f1f;
+  --hover-bg: #1a1a1a;
+  --active-bg: #222222;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
@@ -75,7 +153,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: var(--bg);
+  color: white;
 }
 
 ::-webkit-scrollbar {
@@ -89,14 +167,20 @@ body {
   border-radius: 3px;
 }
 
-textarea::placeholder {
+textarea::placeholder,
+input::placeholder {
   color: var(--text-muted);
 }
 
 /* ── Streaming cursor ────────────────────────────────────────────────────── */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 .streaming-cursor {
@@ -107,4 +191,18 @@ textarea::placeholder {
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 1s step-end infinite;
+}
+
+/* ── Sparkle animation for welcome ───────────────────────────────────────── */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
 }

@@ -9,8 +9,10 @@ import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function HomePage() {
-  const { messages, sessionId, isLoading, error, send, newChat, loadSession } = useChat();
-  const { theme, setTheme } = useTheme();
+  const { messages, sessionId, isLoading, error, send, retry, newChat, loadSession } = useChat();
+  const { theme, mode, setTheme, toggleMode } = useTheme();
+
+  const hasMessages = messages.length > 0 || isLoading;
 
   const handleFeedback = useCallback(
     async (messageId: string, rating: 1 | -1) => {
@@ -39,14 +41,13 @@ export default function HomePage() {
       />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header
-          className="flex items-center justify-between px-4 py-3 shrink-0"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-            {messages.length === 0 ? "New conversation" : "SelfGPT"}
-          </span>
-          <ThemeSwitcher current={theme} onChange={setTheme} />
+        <header className="flex items-center justify-end px-4 py-3 shrink-0">
+          <ThemeSwitcher
+            current={theme}
+            mode={mode}
+            onChange={setTheme}
+            onToggleMode={toggleMode}
+          />
         </header>
 
         {error && (
@@ -63,9 +64,10 @@ export default function HomePage() {
           isLoading={isLoading}
           onChipClick={send}
           onFeedback={handleFeedback}
+          onRetry={retry}
         />
 
-        <ChatInput onSend={send} disabled={isLoading} />
+        {hasMessages && <ChatInput onSend={send} disabled={isLoading} />}
       </div>
     </div>
   );

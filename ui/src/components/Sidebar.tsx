@@ -10,17 +10,6 @@ interface Props {
   onLoadSession: (sessionId: string) => void;
 }
 
-type DateBucket = "Recent" | "Older";
-
-function groupSessions(sessions: SessionRecord[]): [DateBucket, SessionRecord[]][] {
-  if (sessions.length === 0) return [];
-  const recent = sessions.slice(0, 5);
-  const older = sessions.slice(5);
-  const result: [DateBucket, SessionRecord[]][] = [["Recent", recent]];
-  if (older.length > 0) result.push(["Older", older]);
-  return result;
-}
-
 function truncate(str: string, len: number): string {
   return str.length > len ? str.slice(0, len).trimEnd() + "…" : str;
 }
@@ -28,6 +17,7 @@ function truncate(str: string, len: number): string {
 export function Sidebar({ currentSessionId, onNewChat, onLoadSession }: Props) {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     getSessions()
@@ -36,127 +26,293 @@ export function Sidebar({ currentSessionId, onNewChat, onLoadSession }: Props) {
       .finally(() => setLoading(false));
   }, [currentSessionId]);
 
-  const grouped = groupSessions(sessions);
+  if (collapsed) {
+    return (
+      <aside
+        className="w-16 flex flex-col items-center h-full shrink-0 py-4"
+        style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--border)" }}
+      >
+        <button
+          onClick={() => setCollapsed(false)}
+          className="p-2 rounded-lg transition-colors hover:opacity-70"
+          style={{ color: "var(--text)" }}
+          title="Expand sidebar"
+        >
+          <SidebarIcon />
+        </button>
+      </aside>
+    );
+  }
 
   return (
     <aside
       className="w-64 flex flex-col h-full shrink-0"
-      style={{
-        background: "var(--sidebar-bg)",
-        borderRight: "1px solid var(--border)",
-      }}
+      style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--border)" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
         <span
-          className="text-sm font-semibold tracking-tight"
+          className="text-base font-semibold"
           style={{ color: "var(--text)", fontFamily: "var(--font-heading)" }}
         >
           SelfGPT
         </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCollapsed(true)}
+            className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
+            title="Collapse sidebar"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <SidebarIcon />
+          </button>
+        </div>
+      </div>
+
+      {/* New Chat */}
+      <div className="px-3 mb-1">
         <button
           onClick={onNewChat}
-          className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-          title="New chat"
-          style={{ color: "var(--text-muted)" }}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors"
+          style={{ color: "var(--text)", background: "transparent" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
-          <PencilIcon />
+          <PlusCircleIcon />
+          New chat
         </button>
       </div>
 
-      {/* New Chat Button */}
-      <div className="px-3 mb-2">
-        <button
-          onClick={onNewChat}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 hover:opacity-80"
-          style={{
-            color: "var(--accent)",
-            border: "1px solid var(--accent)",
-            background: "transparent",
-          }}
+      {/* Navigation */}
+      <nav className="px-3 mb-2">
+        <NavItem icon={<ChatsIcon />} label="Chats" active />
+        <NavItem icon={<ProjectsIcon />} label="Projects" />
+        <NavItem icon={<ArtifactsIcon />} label="Artifacts" />
+        <NavItem icon={<CustomizeIcon />} label="Customize" />
+      </nav>
+
+      {/* Divider */}
+      <div className="px-4 my-1">
+        <div style={{ height: "1px", background: "var(--border)" }} />
+      </div>
+
+      {/* Products section */}
+      <div className="px-3 mt-2">
+        <p
+          className="text-[11px] px-3 mb-1 font-medium uppercase tracking-wider"
+          style={{ color: "var(--text-muted)" }}
         >
-          <PlusIcon />
-          New conversation
+          Products
+        </p>
+        <NavItem icon={<CodeIcon />} label="Code" />
+        <NavItem icon={<CoworkIcon />} label="Cowork" />
+        <NavItem icon={<DesignIcon />} label="Design" />
+      </div>
+
+      {/* Recents */}
+      <div className="px-3 mt-3 flex items-center justify-between">
+        <p
+          className="text-[11px] px-3 font-medium uppercase tracking-wider"
+          style={{ color: "var(--text-muted)" }}
+        >
+          Recents
+        </p>
+        <button
+          className="p-1 rounded opacity-50 hover:opacity-100 transition-opacity"
+          style={{ color: "var(--text-muted)" }}
+          title="Filter"
+        >
+          <FilterIcon />
         </button>
       </div>
 
       {/* Chat History */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
+      <div className="flex-1 overflow-y-auto px-3 pb-2 mt-1">
         {loading ? (
-          <div className="px-2 py-4">
-            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+          <div className="px-3 py-4">
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               Loading…
             </p>
           </div>
         ) : sessions.length === 0 ? (
-          <div className="px-2 py-4">
-            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              No past conversations yet.
+          <div className="px-3 py-4">
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              No conversations yet.
             </p>
           </div>
         ) : (
-          grouped.map(([bucket, items]) => (
-            <div key={bucket} className="mb-3">
-              <p
-                className="text-[10px] px-2 mb-1 font-semibold uppercase tracking-wider"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {bucket}
-              </p>
-              <ul className="space-y-0.5">
-                {items.map((s) => {
-                  const isActive = s.session_id === currentSessionId;
-                  return (
-                    <li key={s.id}>
-                      <button
-                        onClick={() => onLoadSession(s.session_id)}
-                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs transition-all duration-100"
-                        style={{
-                          color: isActive ? "var(--accent)" : "var(--text-muted)",
-                          background: isActive ? "var(--input-bg)" : "transparent",
-                          borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-                        }}
-                      >
-                        <span className="block truncate">
-                          {truncate(s.title || "Untitled conversation", 38)}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))
+          <ul className="space-y-0.5">
+            {sessions.map((s) => {
+              const isActive = s.session_id === currentSessionId;
+              return (
+                <li key={s.id}>
+                  <button
+                    onClick={() => onLoadSession(s.session_id)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-sm transition-colors"
+                    style={{
+                      color: isActive ? "var(--text)" : "var(--text-muted)",
+                      background: isActive ? "var(--hover-bg)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) e.currentTarget.style.background = "var(--hover-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span className="block truncate">
+                      {truncate(s.title || "Untitled conversation", 30)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
       {/* Footer */}
       <div
-        className="px-4 py-3 border-t"
+        className="px-3 py-3 border-t flex items-center gap-3"
         style={{ borderColor: "var(--border)" }}
       >
-        <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }} suppressHydrationWarning>
-          Session: {currentSessionId.slice(0, 8)}…
-        </p>
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+          style={{ background: "var(--text)", color: "var(--bg)" }}
+        >
+          P
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
+            Prasanna
+          </p>
+          <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+            Ask me anything
+          </p>
+        </div>
       </div>
     </aside>
   );
 }
 
-function PencilIcon() {
+/* ── Nav Item ──────────────────────────────────────────────────────────────── */
+function NavItem({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    <button
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors"
+      style={{
+        color: active ? "var(--text)" : "var(--text-muted)",
+        background: active ? "var(--hover-bg)" : "transparent",
+        fontWeight: active ? 500 : 400,
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = "var(--hover-bg)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = "transparent";
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/* ── Icons ─────────────────────────────────────────────────────────────────── */
+function SidebarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M9 3v18" />
     </svg>
   );
 }
 
-function PlusIcon() {
+function PlusCircleIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v8M8 12h8" />
+    </svg>
+  );
+}
+
+function ChatsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ProjectsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
+function ArtifactsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+}
+
+function CustomizeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function CodeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function CoworkIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function DesignIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" />
+      <line x1="21.17" y1="8" x2="12" y2="8" />
+      <line x1="3.95" y1="6.06" x2="8.54" y2="14" />
+      <line x1="10.88" y1="21.94" x2="15.46" y2="14" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+      <line x1="11" y1="18" x2="13" y2="18" />
     </svg>
   );
 }

@@ -104,12 +104,75 @@ export function useChat() {
     }
   }, []);
 
+  const retry = useCallback(
+    (messageId: string) => {
+      if (isLoading) return;
+      // Find the user message that preceded this assistant message
+      const idx = messages.findIndex((m) => m.id === messageId);
+      if (idx <= 0) return;
+      // Walk backward to find the last user message before this assistant message
+      let userMsg: Message | undefined;
+      for (let i = idx - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          userMsg = messages[i];
+          break;
+        }
+      }
+      if (!userMsg) return;
+      // Remove the assistant message being retried
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      // Re-send (send will add the streaming message)
+      setError(null);
+      setIsLoading(true);
+
+      const streamingId = uuidv4();
+      setMessages((prev) => [
+        ...prev,
+        { id: streamingId, role: "assistant", content: "", timestamp: new Date(), isStreaming: true },
+      ]);
+
+      abortRef.current = new AbortController();
+
+      streamMessage(
+        userMsg.content,
+        sessionId,
+        activeModel,
+        (token) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamingId ? { ...m, content: m.content + token } : m
+            )
+          );
+        },
+        (_sid, modelUsed, costUsd) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamingId
+                ? { ...m, isStreaming: false, model_used: modelUsed, cost_usd: costUsd }
+                : m
+            )
+          );
+          setIsLoading(false);
+        },
+        abortRef.current.signal
+      ).catch((err) => {
+        if ((err as Error).name !== "AbortError") {
+          setError(err instanceof Error ? err.message : "Something went wrong");
+          setMessages((prev) => prev.filter((m) => m.id !== streamingId));
+        }
+        setIsLoading(false);
+      });
+    },
+    [isLoading, messages, sessionId, activeModel]
+  );
+
   return {
     messages,
     sessionId,
     isLoading,
     error,
     send,
+    retry,
     newChat,
     loadSession,
     activeModel,

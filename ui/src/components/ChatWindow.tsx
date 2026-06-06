@@ -10,9 +10,10 @@ interface Props {
   isLoading: boolean;
   onChipClick: (text: string) => void;
   onFeedback?: (messageId: string, rating: 1 | -1) => void;
+  onRetry?: (messageId: string) => void;
 }
 
-export function ChatWindow({ messages, isLoading, onChipClick, onFeedback }: Props) {
+export function ChatWindow({ messages, isLoading, onChipClick, onFeedback, onRetry }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,9 +26,9 @@ export function ChatWindow({ messages, isLoading, onChipClick, onFeedback }: Pro
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-2">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-2">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} onFeedback={onFeedback} />
+          <MessageBubble key={msg.id} message={msg} onFeedback={onFeedback} onRetry={onRetry} />
         ))}
         <div ref={bottomRef} />
       </div>

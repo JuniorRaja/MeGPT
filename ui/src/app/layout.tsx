@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, DM_Sans, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Poppins, Roboto_Serif, DM_Sans, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--loaded-inter", display: "swap" });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--loaded-poppins",
+  display: "swap",
+});
+const robotoSerif = Roboto_Serif({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--loaded-roboto-serif",
+  display: "swap",
+});
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--loaded-dm-sans", display: "swap" });
 const ibmMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -29,7 +40,8 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="claude"
-      className={`${inter.variable} ${dmSans.variable} ${ibmMono.variable} ${ibmSans.variable}`}
+      data-mode="light"
+      className={`${poppins.variable} ${robotoSerif.variable} ${dmSans.variable} ${ibmMono.variable} ${ibmSans.variable}`}
     >
       <body className="h-full">{children}</body>
     </html>

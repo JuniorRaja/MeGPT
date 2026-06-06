@@ -1,4 +1,5 @@
 export type Theme = "claude" | "gpt" | "grok";
+export type ThemeMode = "light" | "dark";
 
 export interface Message {
   id: string;
