@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
 
     litellm_master_key: str = "sk-selfgpt-master-key"
-    default_model: str = "selfgpt-free"
+    default_model: str = "llama-3.3-70b-versatile"
     embed_model: str = "nomic-embed-text"
 
     langfuse_host: str = "http://localhost:3100"
