@@ -10,7 +10,7 @@ export function useChat() {
   const [sessionId] = useState<string>(() => uuidv4());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string>("groq");
+  const [activeModel, setActiveModel] = useState<string>("selfgpt-free");
 
   const send = useCallback(
     async (text: string) => {
