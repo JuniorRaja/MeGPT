@@ -1,7 +1,8 @@
 import re
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
+from limiter import limiter
 from models.ingest import IngestRequest, IngestResponse
 from services.embed_service import embed_service
 from services.qdrant_service import qdrant_service
@@ -32,7 +33,8 @@ def _split_into_chunks(text: str, chunk_size: int = CHUNK_TOKENS, overlap: int =
 
 
 @router.post("", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
-async def ingest(req: IngestRequest) -> IngestResponse:
+@limiter.limit("5/minute")
+async def ingest(request: Request, req: IngestRequest) -> IngestResponse:
     chunks = _split_into_chunks(req.text)
     if not chunks:
         raise HTTPException(
