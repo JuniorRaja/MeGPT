@@ -116,35 +116,35 @@ curl -X POST http://localhost:8000/ingest \
 
 ### Week 1 — Foundation
 - [x] Project scaffold: FastAPI + Next.js + Docker Compose
-- [ ] Qdrant collection setup and ingest pipeline
-- [ ] PocketBase schema: sessions, messages, feedback
+- [x] Qdrant collection setup and ingest pipeline
+- [x] PocketBase schema: sessions, messages, feedback
 
 ### Week 2 — Knowledge Base
-- [ ] Ingest PR's bio, resume, project descriptions, blog posts
-- [ ] Tune chunking strategy (size, overlap, metadata)
+- [x] Ingest PR's bio, resume, project descriptions, blog posts
+- [x] Tune chunking strategy (size, overlap, metadata)
 - [ ] Test retrieval quality with 20 benchmark queries
 
 ### Week 3 — Chat Quality
 - [ ] Multi-turn conversation with session memory
-- [ ] System prompt iteration and persona tuning
+- [x] System prompt iteration and persona tuning
 - [ ] Model routing (fast for simple, deep for complex)
 
 ### Week 4 — UI Polish
-- [ ] Streaming responses (SSE)
-- [ ] Sidebar: real chat history from PocketBase
+- [x] Streaming responses (SSE)
+- [x] Sidebar: real chat history from PocketBase
 - [ ] Mobile-responsive layout
-- [ ] Keyboard shortcuts (Enter to send, Shift+Enter newline)
+- [x] Keyboard shortcuts (Enter to send, Shift+Enter newline)
 
 ### Week 5 — Observability
-- [ ] Langfuse traces for every request
-- [ ] Cost tracking per session
+- [x] Langfuse traces for every request
+- [x] Cost tracking per session
 - [ ] Feedback loop: thumbs → PocketBase → Langfuse scores
 
 ### Week 6 — Deployment
-- [ ] Dockerize API + UI
+- [x] Dockerize API + UI
 - [ ] Deploy to Railway or Fly.io
 - [ ] Custom domain + HTTPS
-- [ ] Rate limiting and basic auth for public access
+- [x] Rate limiting and basic auth for public access
 
 ### Week 7 — Enrichment
 - [ ] Auto-ingest from Notion (PR's notes)
