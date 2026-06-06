@@ -5,44 +5,56 @@
 /* ── Default (Claude) theme ─────────────────────────────────────────────── */
 :root,
 [data-theme="claude"] {
-  --bg: #1a1a1a;
-  --sidebar-bg: #141414;
-  --input-bg: #2a2a2a;
-  --accent: #d4a853;
-  --text: #ececec;
-  --text-muted: #888;
-  --bubble-user: #2a2a2a;
-  --font: 'Inter', sans-serif;
-  --border: #333;
-  --scrollbar: #333;
+  --bg: #1c1917;
+  --sidebar-bg: #141210;
+  --input-bg: #2c2925;
+  --accent: #da8c1a;
+  --accent-hover: #f0a030;
+  --text: #f0ede8;
+  --text-muted: #7c7168;
+  --bubble-user: #2c2925;
+  --font: var(--loaded-inter), sans-serif;
+  --font-heading: Georgia, serif;
+  --border: #3a3530;
+  --scrollbar: #3a3530;
+  --radius-bubble: 18px;
+  --shadow-input: 0 0 0 1px #3a3530, 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* ── GPT theme ──────────────────────────────────────────────────────────── */
 [data-theme="gpt"] {
   --bg: #ffffff;
-  --sidebar-bg: #f7f7f8;
+  --sidebar-bg: #f9f9f9;
   --input-bg: #f4f4f4;
   --accent: #10a37f;
+  --accent-hover: #0d8f6e;
   --text: #0d0d0d;
-  --text-muted: #666;
+  --text-muted: #8e8ea0;
   --bubble-user: #f4f4f4;
-  --font: system-ui, sans-serif;
-  --border: #e5e5e5;
-  --scrollbar: #d9d9d9;
+  --font: var(--loaded-dm-sans), system-ui, sans-serif;
+  --font-heading: inherit;
+  --border: #ececec;
+  --scrollbar: #d9d9e3;
+  --radius-bubble: 12px;
+  --shadow-input: 0 0 0 1px #d9d9e3;
 }
 
 /* ── Grok theme ─────────────────────────────────────────────────────────── */
 [data-theme="grok"] {
   --bg: #000000;
   --sidebar-bg: #0a0a0a;
-  --input-bg: #111111;
-  --accent: #ff4444;
-  --text: #ffffff;
-  --text-muted: #666;
-  --bubble-user: #111111;
-  --font: 'JetBrains Mono', monospace;
-  --border: #1a1a1a;
-  --scrollbar: #1a1a1a;
+  --input-bg: #0f0f0f;
+  --accent: #e53935;
+  --accent-hover: #ff5252;
+  --text: #f5f5f5;
+  --text-muted: #555;
+  --bubble-user: #111;
+  --font: var(--loaded-ibm-mono), monospace;
+  --font-heading: var(--loaded-ibm-sans), sans-serif;
+  --border: #1f1f1f;
+  --scrollbar: #1f1f1f;
+  --radius-bubble: 6px;
+  --shadow-input: 0 0 0 1px #1f1f1f;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
@@ -81,7 +93,18 @@ textarea::placeholder {
   color: var(--text-muted);
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+/* ── Streaming cursor ────────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: currentColor;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
 }

@@ -9,7 +9,7 @@ import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function HomePage() {
-  const { messages, sessionId, isLoading, error, send, clearMessages } = useChat();
+  const { messages, sessionId, isLoading, error, send, newChat, loadSession } = useChat();
   const { theme, setTheme } = useTheme();
 
   const handleFeedback = useCallback(
@@ -32,7 +32,11 @@ export default function HomePage() {
 
   return (
     <div className="flex h-full" style={{ background: "var(--bg)" }}>
-      <Sidebar sessionId={sessionId} onNewChat={clearMessages} />
+      <Sidebar
+        currentSessionId={sessionId}
+        onNewChat={newChat}
+        onLoadSession={loadSession}
+      />
 
       <div className="flex flex-col flex-1 min-w-0">
         <header
@@ -40,7 +44,7 @@ export default function HomePage() {
           style={{ borderBottom: "1px solid var(--border)" }}
         >
           <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-            New conversation
+            {messages.length === 0 ? "New conversation" : "SelfGPT"}
           </span>
           <ThemeSwitcher current={theme} onChange={setTheme} />
         </header>

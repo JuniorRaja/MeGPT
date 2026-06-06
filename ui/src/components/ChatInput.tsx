@@ -36,44 +36,41 @@ export function ChatInput({ onSend, disabled }: Props) {
   };
 
   return (
-    <div className="px-4 pb-2">
-      <div
-        className="flex items-end gap-2 rounded-2xl px-4 py-3"
-        style={{
-          background: "var(--input-bg)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder="Ask me about Prasanna..."
-          rows={1}
-          disabled={disabled}
-          className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
+    <div className="px-4 pb-4">
+      <div className="max-w-3xl mx-auto">
+        <div
+          className="flex items-end gap-2 rounded-2xl px-4 py-3"
           style={{
-            color: "var(--text)",
-            maxHeight: "200px",
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!value.trim() || disabled}
-          className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150 disabled:opacity-30"
-          style={{
-            background: "var(--accent)",
-            color: "var(--bg)",
+            background: "var(--input-bg)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-input)",
           }}
         >
-          <SendIcon />
-        </button>
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder="Ask me about Prasanna..."
+            rows={1}
+            disabled={disabled}
+            className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
+            style={{ color: "var(--text)", maxHeight: "200px" }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!value.trim() || disabled}
+            className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150 disabled:opacity-30"
+            style={{ background: "var(--accent)", color: "var(--bg)" }}
+          >
+            <SendIcon />
+          </button>
+        </div>
+        <p className="text-center text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>
+          SelfGPT AI can make mistakes. He does in real life too.
+        </p>
       </div>
-      <p className="text-center text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>
-        SelfGPT AI can make mistakes. He does in real life too.
-      </p>
     </div>
   );
 }

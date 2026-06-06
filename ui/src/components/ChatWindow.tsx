@@ -24,25 +24,13 @@ export function ChatWindow({ messages, isLoading, onChipClick, onFeedback }: Pro
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
-      {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} onFeedback={onFeedback} />
-      ))}
-      {isLoading && (
-        <div className="flex gap-1 items-center py-2">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="w-1.5 h-1.5 rounded-full animate-bounce"
-              style={{
-                background: "var(--text-muted)",
-                animationDelay: `${i * 0.15}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      <div ref={bottomRef} />
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-2">
+        {messages.map((msg) => (
+          <MessageBubble key={msg.id} message={msg} onFeedback={onFeedback} />
+        ))}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { ChatResponse, HealthResponse } from "./types";
+import type { ChatResponse, HealthResponse, MessageRecord, SessionRecord } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -26,6 +26,67 @@ export async function sendMessage(
     method: "POST",
     body: JSON.stringify({ message, session_id: sessionId, model }),
   });
+}
+
+export async function streamMessage(
+  message: string,
+  sessionId: string,
+  model: string | undefined,
+  onToken: (token: string) => void,
+  onDone: (sessionId: string, modelUsed: string, costUsd: number) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const res = await fetch(`${API_URL}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      session_id: sessionId,
+      model,
+      title: message.slice(0, 60),
+    }),
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API ${res.status}: ${body}`);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop()!;
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const data = JSON.parse(line.slice(6));
+        if (data.token) onToken(data.token);
+        if (data.done) onDone(data.session_id, data.model_used ?? "", data.cost_usd ?? 0);
+        if (data.error) throw new Error(data.error);
+      } catch {
+        // skip malformed frames
+      }
+    }
+  }
+}
+
+export async function getSessions(): Promise<SessionRecord[]> {
+  const data = await apiFetch<{ sessions: SessionRecord[] }>("/sessions");
+  return data.sessions ?? [];
+}
+
+export async function getSessionMessages(sessionId: string): Promise<MessageRecord[]> {
+  const data = await apiFetch<{ messages: MessageRecord[] }>(
+    `/sessions/${sessionId}/messages`
+  );
+  return data.messages ?? [];
 }
 
 export async function submitFeedback(

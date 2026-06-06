@@ -1,6 +1,7 @@
 "use client";
 
 import type { Theme } from "@/lib/types";
+import { THEME_ACCENTS } from "@/styles/themes";
 
 const THEMES: { id: Theme; label: string }[] = [
   { id: "claude", label: "Claude" },
@@ -20,13 +21,24 @@ export function ThemeSwitcher({ current, onChange }: Props) {
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className="px-3 py-1 text-xs font-medium rounded-full transition-all duration-150"
+          className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all duration-150"
           style={{
             color: current === t.id ? "var(--accent)" : "var(--text-muted)",
             border: current === t.id ? "1px solid var(--accent)" : "1px solid transparent",
             background: current === t.id ? "var(--bg)" : "transparent",
           }}
         >
+          <span
+            style={{
+              display: "inline-block",
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: THEME_ACCENTS[t.id],
+              opacity: current === t.id ? 1 : 0.4,
+              flexShrink: 0,
+            }}
+          />
           {t.label}
         </button>
       ))}
