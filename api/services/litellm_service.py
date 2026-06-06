@@ -6,13 +6,34 @@ import httpx
 
 from config import settings
 
-# Price per 1M tokens (input, output) in USD
+# Price per 1M tokens (input, output) in USD — Groq published rates
 _PRICING: dict[str, tuple[float, float]] = {
-    "selfgpt-turbo": (0.05,   0.08),   # groq/llama-3.1-8b-instant
-    "selfgpt-free":  (0.59,   0.79),   # groq/llama-3.3-70b-versatile
-    "selfgpt-smart": (0.80,   4.00),   # claude-haiku-4-5
-    "selfgpt-deep":  (3.00,  15.00),   # claude-sonnet-4-5
+    "llama-3.1-8b-instant":                      (0.05,  0.08),
+    "allam-2-7b":                                 (0.02,  0.02),
+    "llama-3.3-70b-versatile":                    (0.59,  0.79),
+    "meta-llama/llama-4-scout-17b-16e-instruct":  (0.11,  0.34),
+    "qwen/qwen3-32b":                             (0.29,  0.59),
+    "claude-haiku-4-5-20251001":                  (0.80,  4.00),
+    "claude-sonnet-4-5-20251001":                 (3.00, 15.00),
 }
+
+# In-memory cache of x-ratelimit-remaining-requests (RPD) per Groq model.
+# Updated on every successful response; used to proactively skip exhausted models.
+_groq_remaining: dict[str, int] = {}
+
+
+def _capture_rl_headers(model: str, headers: httpx.Headers) -> None:
+    value = headers.get("x-ratelimit-remaining-requests")
+    if value is not None:
+        try:
+            _groq_remaining[model] = int(value)
+        except (ValueError, TypeError):
+            pass
+
+
+def groq_remaining_requests(model: str) -> int | None:
+    """Return cached remaining-requests (RPD) for a Groq model, or None if unknown."""
+    return _groq_remaining.get(model)
 
 
 def _compute_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
@@ -62,6 +83,7 @@ class LiteLLMService:
                 json=payload,
             )
             resp.raise_for_status()
+            _capture_rl_headers(model, resp.headers)
             data = resp.json()
 
         choice = data["choices"][0]["message"]["content"]
@@ -76,7 +98,6 @@ class LiteLLMService:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
-
 
     async def stream(
         self,
@@ -99,6 +120,7 @@ class LiteLLMService:
                 json=payload,
             ) as resp:
                 resp.raise_for_status()
+                _capture_rl_headers(model, resp.headers)
                 async for line in resp.aiter_lines():
                     if not line.startswith("data: "):
                         continue
