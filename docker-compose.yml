@@ -51,7 +51,7 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - pocketbase_data:/pb/pb_data
+      - pocketbase_data:/pb_data
     restart: unless-stopped
 
   ollama:
