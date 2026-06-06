@@ -4,6 +4,18 @@ import httpx
 
 from config import settings
 
+# Price per 1M tokens (input, output) in USD
+_PRICING: dict[str, tuple[float, float]] = {
+    "selfgpt-free":  (0.59,   0.79),   # groq/llama-3.3-70b-versatile
+    "selfgpt-smart": (0.80,   4.00),   # claude-haiku-4-5
+    "selfgpt-deep":  (3.00,  15.00),   # claude-sonnet-4-5
+}
+
+
+def _compute_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    input_price, output_price = _PRICING.get(model, (0.0, 0.0))
+    return (prompt_tokens * input_price + completion_tokens * output_price) / 1_000_000
+
 
 @dataclass
 class LLMResponse:
@@ -44,14 +56,15 @@ class LiteLLMService:
 
         choice = data["choices"][0]["message"]["content"]
         usage = data.get("usage", {})
-        cost = data.get("_hidden_params", {}).get("response_cost", 0.0) or 0.0
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
 
         return LLMResponse(
             content=choice,
             model=data.get("model", model),
-            cost_usd=float(cost),
-            prompt_tokens=usage.get("prompt_tokens", 0),
-            completion_tokens=usage.get("completion_tokens", 0),
+            cost_usd=_compute_cost(model, prompt_tokens, completion_tokens),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
         )
 
 

@@ -5,7 +5,6 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     Distance,
     PointStruct,
-    ScoredPoint,
     VectorParams,
 )
 
@@ -44,16 +43,22 @@ class QdrantService:
         await self.client.upsert(collection_name=self.collection, points=points)
         return len(points)
 
-    async def search(
-        self, query_vector: list[float], limit: int = 5
-    ) -> list[str]:
-        results: list[ScoredPoint] = await self.client.search(
+    async def search(self, query_vector: list[float], limit: int = 5) -> list[str]:
+        results = await self.client.search(
             collection_name=self.collection,
             query_vector=query_vector,
             limit=limit,
             with_payload=True,
         )
-        return [hit.payload.get("text", "") for hit in results if hit.payload]
+        return [
+            hit.payload.get("text", "")
+            for hit in results
+            if hit.payload
+        ]
+
+    async def count(self) -> int:
+        info = await self.client.get_collection(self.collection)
+        return info.points_count or 0
 
 
 qdrant_service = QdrantService()

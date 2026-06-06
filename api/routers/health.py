@@ -19,7 +19,10 @@ async def health_check() -> dict:
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{settings.litellm_url}/health")
+            resp = await client.get(
+                f"{settings.litellm_url}/health",
+                headers={"Authorization": f"Bearer {settings.litellm_master_key}"},
+            )
             checks["litellm"] = "ok" if resp.status_code == 200 else f"http {resp.status_code}"
     except Exception as exc:
         checks["litellm"] = f"error: {exc}"

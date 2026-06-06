@@ -66,3 +66,9 @@ async def ingest(req: IngestRequest) -> IngestResponse:
         source=req.source,
         category=req.category,
     )
+
+
+@router.get("/count")
+async def vector_count() -> dict:
+    count = await qdrant_service.count()
+    return {"collection": qdrant_service.collection, "vectors": count}
