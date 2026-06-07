@@ -120,7 +120,7 @@ export function ChatInput({ onSend, onNewChat, disabled, readOnly, contextFull, 
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onInput={handleInput}
-              placeholder="Reply to SelfGPT..."
+              placeholder="Reply to MeGPT..."
               rows={1}
               disabled={disabled}
               className="w-full resize-none bg-transparent text-sm outline-none leading-relaxed"

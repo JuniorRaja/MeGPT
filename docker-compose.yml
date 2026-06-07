@@ -1,7 +1,7 @@
 services:
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: selfgpt_qdrant
+    container_name: megpt_qdrant
     ports:
       - "6333:6333"
     volumes:
@@ -15,7 +15,7 @@ services:
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
-    container_name: selfgpt_litellm
+    container_name: megpt_litellm
     ports:
       - "4000:4000"
     volumes:
@@ -26,7 +26,7 @@ services:
 
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
-    container_name: selfgpt_pocketbase
+    container_name: megpt_pocketbase
     ports:
       - "8090:8090"
     volumes:
@@ -35,7 +35,7 @@ services:
 
   api:
     build: ./api
-    container_name: selfgpt_api
+    container_name: megpt_api
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -57,7 +57,7 @@ services:
       context: ./ui
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-    container_name: selfgpt_ui
+    container_name: megpt_ui
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:

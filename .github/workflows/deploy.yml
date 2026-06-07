@@ -30,13 +30,13 @@ jobs:
         with:
           context: ./api
           push: true
-          tags: ghcr.io/${{ env.REPO }}/selfgpt-api:latest
+          tags: ghcr.io/${{ env.REPO }}/megpt-api:latest
 
       - name: Build & push UI
         uses: docker/build-push-action@v5
         with:
           context: ./ui
           push: true
-          tags: ghcr.io/${{ env.REPO }}/selfgpt-ui:latest
+          tags: ghcr.io/${{ env.REPO }}/megpt-ui:latest
           build-args: |
             NEXT_PUBLIC_API_URL=https://ai.prasannar.com/api

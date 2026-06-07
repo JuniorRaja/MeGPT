@@ -10,7 +10,7 @@ interface ModelOption {
 }
 
 const MODELS: ModelOption[] = [
-  { id: "auto", label: "SelfGPT", badge: "Auto" },
+  { id: "auto", label: "MeGPT", badge: "Auto" },
   { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
   { id: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
   { id: "qwen/qwen3-32b", label: "Qwen3 32B" },
@@ -50,7 +50,7 @@ export function ModelSelector({ value, onChange }: Props) {
         title="Select model"
       >
         <span className="font-medium" style={{ color: "var(--text)" }}>
-          {isAuto ? "SelfGPT" : selected.label}
+          {isAuto ? "MeGPT" : selected.label}
         </span>
         <span>{isAuto ? "Auto" : "·"}</span>
         <ChevronDownIcon />
@@ -79,7 +79,7 @@ export function ModelSelector({ value, onChange }: Props) {
             onMouseEnter={(e) => { if (!isAuto) e.currentTarget.style.background = "var(--hover-bg)"; }}
             onMouseLeave={(e) => { if (!isAuto) e.currentTarget.style.background = "transparent"; }}
           >
-            <span className="font-medium">SelfGPT Auto</span>
+            <span className="font-medium">MeGPT Auto</span>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-md font-medium"
               style={{

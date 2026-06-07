@@ -57,7 +57,7 @@ export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat
           className="text-base font-semibold"
           style={{ color: "var(--text)", fontFamily: "var(--font-heading)" }}
         >
-          SelfGPT
+          MeGPT
         </span>
         <div className="flex items-center gap-1">
           <button

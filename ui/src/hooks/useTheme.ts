@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { Theme, ThemeMode } from "@/lib/types";
 import { themes } from "@/styles/themes";
 
-const THEME_KEY = "selfgpt_theme";
-const MODE_KEY = "selfgpt_mode";
+const THEME_KEY = "megpt_theme";
+const MODE_KEY = "megpt_mode";
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>("claude");

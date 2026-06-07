@@ -29,8 +29,8 @@ const ibmSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SelfGPT — Digital Twin of Prasanna Rajendran",
-  description: "Ask anything about Prasanna Rajendran — his work, skills, projects, and more.",
+  title: "MeGPT — Digital Twin of Prasanna R",
+  description: "Ask anything about Prasanna R — his work, skills, projects, and more.",
 };
 
 export default function RootLayout({

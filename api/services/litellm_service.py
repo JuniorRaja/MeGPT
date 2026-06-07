@@ -147,11 +147,11 @@ class LiteLLMService:
 
 
 _JUDGE_PROMPT = (
-    "You are the safety classifier for SelfGPT — the AI twin of Prasanna Rajendran (PR), "
+    "You are the safety classifier for MeGPT — the AI twin of Prasanna R (PR), "
     "a Project Manager/developer from Chennai with 7+ years in fintech.\n\n"
     "Classify the message and respond in JSON only (no markdown, no backticks):\n\n"
     "pass — anything about PR: his work, stack (C#/.NET/React/TypeScript/Python), projects "
-    "(SelfGPT, HushKey, TG bot, homelab), opinions, reading, hobbies (coins, fragrances, cooking, hills), "
+    "(MeGPT, HushKey, TG bot, homelab), opinions, reading, hobbies (coins, fragrances, cooking, hills), "
     "Chennai, fintech, or vague questions that could plausibly be about him.\n"
     '→ {"verdict": "pass"}\n\n'
     "deflect — clearly off-topic but harmless: general coding help unrelated to PR, world news, "

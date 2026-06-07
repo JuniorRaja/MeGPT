@@ -20,8 +20,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SelfGPT API",
-    description="Digital twin of Prasanna Rajendran",
+    title="MeGPT API",
+    description="Digital twin of Prasanna R",
     version="1.0.0",
     lifespan=lifespan,
 )

@@ -1,12 +1,12 @@
-# SelfGPT — Digital Twin of Prasanna Rajendran
+# MeGPT — Digital Twin of Prasanna R
 
-A production-grade personal AI twin that answers questions about Prasanna Rajendran (PR) — his work, skills, projects, opinions, travel, and interests. Powered by RAG over a personal knowledge base with a Claude-style UI.
+A production-grade personal AI twin that answers questions about Prasanna R (PR) — his work, skills, projects, opinions, travel, and interests. Powered by RAG over a personal knowledge base with a Claude-style UI.
 
 ---
 
 ## What is this?
 
-SelfGPT is a RAG-based chatbot that:
+MeGPT is a RAG-based chatbot that:
 - Embeds and stores PR's personal knowledge (bios, projects, writing, talks) in Qdrant
 - Retrieves relevant context for each query and feeds it to an LLM via LiteLLM
 - Maintains conversation sessions in PocketBase
@@ -40,8 +40,8 @@ SelfGPT is a RAG-based chatbot that:
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/prasannarajendran/selfgpt
-cd selfgpt
+git clone https://github.com/JuniorRaja/MeGPT
+cd MeGPT
 cp .env.example .env
 # Edit .env — fill in GROQ_API_KEY at minimum
 ```
@@ -78,7 +78,7 @@ Visit http://localhost:3000
 ```bash
 curl -X POST http://localhost:8000/ingest \
   -H "Content-Type: application/json" \
-  -d '{"text": "Prasanna Rajendran is a full-stack engineer and product builder...", "source": "bio", "category": "about"}'
+  -d '{"text": "Prasanna R is a full-stack engineer and product builder...", "source": "bio", "category": "about"}'
 ```
 
 ---
