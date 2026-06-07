@@ -25,7 +25,7 @@ SelfGPT is a RAG-based chatbot that:
 | LLM Proxy   | LiteLLM                             |
 | Tracing     | Langfuse                            |
 | Storage     | PocketBase                          |
-| Embeddings  | nomic-embed-text via Ollama         |
+| Embeddings  | fastembed (nomic-embed-text-v1.5)   |
 | Infra       | Docker Compose                      |
 
 ---
@@ -36,7 +36,6 @@ SelfGPT is a RAG-based chatbot that:
 - Docker & Docker Compose
 - Node.js 20+
 - Python 3.11+
-- [Ollama](https://ollama.ai) with `nomic-embed-text` pulled: `ollama pull nomic-embed-text`
 
 ### 1. Clone and configure
 
@@ -50,18 +49,10 @@ cp .env.example .env
 ### 2. Start infrastructure
 
 ```bash
-docker compose up -d qdrant litellm langfuse_db langfuse
+docker compose up -d qdrant litellm pocketbase
 ```
 
-### 3. Start PocketBase (separate binary)
-
-Download from https://pocketbase.io/docs/ and run:
-```bash
-./pocketbase serve --http=0.0.0.0:8090
-```
-Create an admin account, then create collections: `sessions`, `messages`.
-
-### 4. Start the API
+### 3. Start the API
 
 ```bash
 cd api
@@ -71,7 +62,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 5. Start the UI
+### 4. Start the UI
 
 ```bash
 cd ui
@@ -82,7 +73,7 @@ npm run dev
 
 Visit http://localhost:3000
 
-### 6. Ingest your knowledge
+### 5. Ingest your knowledge
 
 ```bash
 curl -X POST http://localhost:8000/ingest \
@@ -100,13 +91,14 @@ curl -X POST http://localhost:8000/ingest \
 | `OPENAI_API_KEY`         | OpenAI key (deep/gpt-4o model)           |
 | `ANTHROPIC_API_KEY`      | Anthropic key (smart/claude model)       |
 | `LITELLM_MASTER_KEY`     | LiteLLM proxy auth key                   |
-| `LANGFUSE_PUBLIC_KEY`    | Langfuse project public key              |
-| `LANGFUSE_SECRET_KEY`    | Langfuse project secret key              |
+| `LANGFUSE_PUBLIC_KEY`    | Langfuse Cloud public key                |
+| `LANGFUSE_SECRET_KEY`    | Langfuse Cloud secret key                |
+| `LANGFUSE_HOST`          | Langfuse host (default: cloud.langfuse.com) |
 | `POCKETBASE_URL`         | PocketBase server URL                    |
 | `POCKETBASE_ADMIN_EMAIL` | PocketBase admin email                   |
 | `POCKETBASE_ADMIN_PASSWORD` | PocketBase admin password             |
 | `QDRANT_URL`             | Qdrant server URL                        |
-| `OLLAMA_URL`             | Ollama server URL (for embeddings)       |
+| `EMBED_MODEL`            | fastembed model name for embeddings      |
 | `DEFAULT_MODEL`          | Default LLM alias: groq / smart / deep   |
 | `NEXT_PUBLIC_API_URL`    | FastAPI URL visible from the browser     |
 
