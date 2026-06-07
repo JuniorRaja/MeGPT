@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, status
@@ -83,8 +84,13 @@ def _get_fallback_chain(model: str) -> list[str]:
     return [model]
 
 
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
 def _build_messages(message: str, context_block: str, history: list[dict]) -> list[dict]:
-    system_content = SYSTEM_PROMPT
+    now = datetime.now(_IST)
+    date_line = f"Current date and time: {now.strftime('%A, %d %B %Y, %H:%M IST')}."
+    system_content = SYSTEM_PROMPT + f"\n\n{date_line}"
     if context_block:
         system_content += f"\n\n---\nContext from PR's knowledge base:\n{context_block}\n---"
 
