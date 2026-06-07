@@ -1,6 +1,5 @@
 import asyncio
 import json
-import random
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, status
@@ -9,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from limiter import limiter
 from models.chat import ChatRequest, ChatResponse
 from services.embed_service import embed_service
-from services.litellm_service import _compute_cost, estimate_cost, groq_remaining_requests, judge_message, litellm_service
+from services.litellm_service import _JUDGE_MODEL, _compute_cost, estimate_cost, groq_remaining_requests, judge_message, litellm_service
 from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
 
@@ -51,29 +50,7 @@ _KNOWN_MODELS = {
     _CLAUDE_SONNET,
 }
 
-# Canned responses for judge verdicts — in-character with SelfGPT's tone
-_DEFLECT_POOL = [
-    "I'm a one-subject expert — that subject is Prasanna. What would you like to know about him?",
-    "My world revolves around one person. Ask me something about Prasanna.",
-    "Bit outside my lane. What do you want to know about Prasanna?",
-    "I only know about Prasanna — but he's worth asking about.",
-    "That's not my domain, but Prasanna is. Fire away.",
-]
-
-_BLOCK_POOL = [
-    "Nice try. I'm Prasanna's digital twin, not a sandbox.",
-    "That's not happening. Ask me something real about Prasanna.",
-    "Clever, but no. What do you actually want to know about him?",
-    "I see what you're doing. Let's keep this about Prasanna, yeah?",
-    "Not today. Try asking something genuine about Prasanna instead.",
-]
-
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-
-
-def _pick_canned(verdict: str) -> str:
-    pool = _BLOCK_POOL if verdict == "block" else _DEFLECT_POOL
-    return random.choice(pool)
 
 
 def _route_model(message: str, requested: str | None) -> str:
@@ -134,18 +111,19 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
     # Judge + embed run in parallel — no latency penalty on the happy path
-    verdict, query_vector = await asyncio.gather(
+    (verdict, judge_reply, judge_cost), query_vector = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
     )
 
     if verdict != "pass":
-        canned = _pick_canned(verdict)
         await pocketbase_service.save_message(
-            session_id=req.session_id, role="assistant", content=canned, model_used="judge",
+            session_id=req.session_id, role="assistant", content=judge_reply,
+            model_used=_JUDGE_MODEL, cost_usd=judge_cost,
         )
         return ChatResponse(
-            response=canned, session_id=req.session_id, model_used="judge", cost_usd=0.0, sources=[],
+            response=judge_reply, session_id=req.session_id,
+            model_used=_JUDGE_MODEL, cost_usd=judge_cost, sources=[],
         )
 
     chunks = await qdrant_service.search(query_vector, limit=5)
@@ -194,20 +172,19 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
     # Judge + embed run in parallel — no latency penalty on the happy path
-    verdict, query_vector = await asyncio.gather(
+    (verdict, judge_reply, judge_cost), query_vector = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
     )
 
     if verdict != "pass":
-        canned = _pick_canned(verdict)
-
         async def canned_stream():
-            yield f"data: {json.dumps({'token': canned})}\n\n"
+            yield f"data: {json.dumps({'token': judge_reply})}\n\n"
             await pocketbase_service.save_message(
-                session_id=req.session_id, role="assistant", content=canned, model_used="judge",
+                session_id=req.session_id, role="assistant", content=judge_reply,
+                model_used=_JUDGE_MODEL, cost_usd=judge_cost,
             )
-            yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': 'judge', 'cost_usd': 0.0, 'tokens_in': 0, 'tokens_out': 0})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': _JUDGE_MODEL, 'cost_usd': judge_cost, 'tokens_in': 0, 'tokens_out': 0})}\n\n"
 
         return StreamingResponse(canned_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
