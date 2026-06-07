@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
     model: Optional[str] = None
     title: Optional[str] = None
+    incognito: bool = False
 
 
 class ChatResponse(BaseModel):

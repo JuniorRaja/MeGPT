@@ -16,6 +16,17 @@ async def list_sessions(request: Request) -> dict:
         raise HTTPException(status_code=502, detail=str(exc))
 
 
+@router.get("/stats")
+@limiter.limit("60/minute")
+async def get_stats(request: Request) -> dict:
+    """Return all message cost/token data for client-side aggregation."""
+    try:
+        items = await pocketbase_service.get_all_stats()
+        return {"items": items}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 @router.get("/{session_id}/messages")
 @limiter.limit("60/minute")
 async def get_session_messages(request: Request, session_id: str) -> dict:

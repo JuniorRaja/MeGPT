@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from limiter import limiter
 from models.chat import ChatRequest, ChatResponse
 from services.embed_service import embed_service
-from services.litellm_service import estimate_cost, groq_remaining_requests, litellm_service
+from services.litellm_service import _compute_cost, estimate_cost, groq_remaining_requests, litellm_service
 from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
 
@@ -67,10 +67,10 @@ def _route_model(message: str, requested: str | None) -> str:
         return "llama-3.1-8b-instant"
 
     if any(kw in text for kw in _DEEP_KEYWORDS) or len(words) > 60:
-        return _CLAUDE_SONNET
+        return "llama-3.3-70b-versatile"
 
     if any(kw in text for kw in _SMART_KEYWORDS) or len(words) > 25:
-        return _CLAUDE_HAIKU
+        return "qwen/qwen3-32b"
 
     return "llama-3.3-70b-versatile"
 
@@ -82,7 +82,7 @@ def _get_fallback_chain(model: str) -> list[str]:
             candidates = chain[chain.index(model):]
             # Drop models we know are exhausted; unknown state (None) is treated as available
             available = [m for m in candidates if (groq_remaining_requests(m) or 1) > 0]
-            return available + [_CLAUDE_HAIKU]
+            return available if available else [chain[-1]]
     return [model]
 
 
@@ -108,7 +108,7 @@ async def _load_history(session_id: str, limit: int = 10) -> list[dict]:
 @limiter.limit("20/minute")
 async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     await pocketbase_service.ensure_session(
-        req.session_id, title=req.title or req.message[:60]
+        req.session_id, title=req.title or req.message[:60], incognito=req.incognito
     )
     history = await _load_history(req.session_id)
     await pocketbase_service.save_message(
@@ -159,7 +159,7 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
 @limiter.limit("20/minute")
 async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     await pocketbase_service.ensure_session(
-        req.session_id, title=req.title or req.message[:60]
+        req.session_id, title=req.title or req.message[:60], incognito=req.incognito
     )
     history = await _load_history(req.session_id)
     await pocketbase_service.save_message(
@@ -180,16 +180,24 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
 
     async def event_stream():
         nonlocal model
+        tokens_in: int = 0
+        tokens_out: int = 0
+
         for i, attempt in enumerate(chain):
             model = attempt
             try:
-                async for token in litellm_service.stream(messages=messages, model=model):
-                    collected.append(token)
-                    yield f"data: {json.dumps({'token': token})}\n\n"
+                async for token, usage in litellm_service.stream(messages=messages, model=model):
+                    if token:
+                        collected.append(token)
+                        yield f"data: {json.dumps({'token': token})}\n\n"
+                    elif usage:
+                        tokens_in = usage.get("prompt_tokens", 0)
+                        tokens_out = usage.get("completion_tokens", 0)
                 break  # success
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 429 and i < len(chain) - 1:
                     collected.clear()
+                    tokens_in = tokens_out = 0
                     next_model = chain[i + 1]
                     yield f"data: {json.dumps({'notice': 'rate_limit_fallback', 'model': next_model})}\n\n"
                     continue
@@ -200,7 +208,13 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
                 return
 
         full_content = "".join(collected)
-        cost_usd = estimate_cost(model, input_text, full_content)
+        # Fall back to character-count estimate if provider didn't send usage
+        if tokens_in == 0 and tokens_out == 0:
+            cost_usd = estimate_cost(model, input_text, full_content)
+            tokens_in = max(1, len(input_text) // 4)
+            tokens_out = max(1, len(full_content) // 4)
+        else:
+            cost_usd = _compute_cost(model, tokens_in, tokens_out)
 
         await pocketbase_service.save_message(
             session_id=req.session_id,
@@ -208,8 +222,10 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
             content=full_content,
             model_used=model,
             cost_usd=cost_usd,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
         )
-        yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': model, 'cost_usd': cost_usd})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': model, 'cost_usd': cost_usd, 'tokens_in': tokens_in, 'tokens_out': tokens_out})}\n\n"
 
     return StreamingResponse(
         event_stream(),

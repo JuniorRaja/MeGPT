@@ -103,7 +103,8 @@ class LiteLLMService:
         self,
         messages: list[dict],
         model: str | None = None,
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncGenerator[tuple[str, dict | None], None]:
+        """Yield (token, None) for content chunks; ("", usage_dict) for final usage chunk."""
         model = model or settings.default_model
         payload = {
             "model": model,
@@ -111,6 +112,7 @@ class LiteLLMService:
             "temperature": 0.85,
             "max_tokens": 600,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         async with httpx.AsyncClient(timeout=120.0) as client:
             async with client.stream(
@@ -129,9 +131,14 @@ class LiteLLMService:
                         break
                     try:
                         data = json.loads(chunk)
-                        delta = data["choices"][0]["delta"].get("content", "")
-                        if delta:
-                            yield delta
+                        usage = data.get("usage")
+                        choices = data.get("choices") or []
+                        if choices:
+                            delta = choices[0]["delta"].get("content", "")
+                            if delta:
+                                yield (delta, None)
+                        elif usage:
+                            yield ("", usage)
                     except (json.JSONDecodeError, KeyError, IndexError):
                         continue
 

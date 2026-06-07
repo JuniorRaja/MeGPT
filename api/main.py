@@ -8,12 +8,14 @@ from slowapi.errors import RateLimitExceeded
 from config import settings
 from limiter import limiter
 from routers import chat, health, ingest, sessions
+from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await qdrant_service.ensure_collection()
+    await pocketbase_service.ensure_schema_fields()
     yield
 
 
