@@ -19,6 +19,14 @@ function formatCost(usd: number): string {
   return inr < 0.01 ? "₹0.00" : `₹${inr.toFixed(2)}`;
 }
 
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function modelShortName(model: string): string {
   if (model.includes("llama-4-scout")) return "Llama 4 Scout";
   if (model.includes("llama-3.3-70b")) return "Llama 3.3 70B";
@@ -31,8 +39,34 @@ function modelShortName(model: string): string {
   return model.split("/").pop() ?? model;
 }
 
+interface ParsedContent {
+  thinking: string;
+  thinkingDone: boolean;
+  response: string;
+}
+
+function parseThinking(content: string): ParsedContent {
+  if (content.startsWith("<think")) {
+    const closeIdx = content.indexOf("</think>");
+    if (closeIdx !== -1) {
+      return {
+        thinking: content.slice("<think>".length, closeIdx).trim(),
+        thinkingDone: true,
+        response: content.slice(closeIdx + "</think>".length).trimStart(),
+      };
+    }
+    return {
+      thinking: content.startsWith("<think>") ? content.slice("<think>".length) : "",
+      thinkingDone: false,
+      response: "",
+    };
+  }
+  return { thinking: "", thinkingDone: true, response: content };
+}
+
 export function MessageBubble({ message, onFeedback, onRetry }: Props) {
   const [copied, setCopied] = useState(false);
+  const [thinkExpanded, setThinkExpanded] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -44,9 +78,13 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
     }
   };
 
+  const totalTokens = (message.tokens_in ?? 0) + (message.tokens_out ?? 0);
+  const { thinking, thinkingDone, response } = parseThinking(message.content);
+  const hasThinking = thinking.length > 0;
+
   if (message.role === "user") {
     return (
-      <div className="flex justify-end mb-5">
+      <div className="flex flex-col items-end mb-5">
         <div
           className="max-w-[70%] px-4 py-3 text-sm leading-relaxed"
           style={{
@@ -58,6 +96,13 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
         >
           {message.content}
         </div>
+        <span
+          className="text-[10px] mt-1 mr-1"
+          style={{ color: "var(--text-muted)" }}
+          suppressHydrationWarning
+        >
+          {formatTime(message.timestamp)}
+        </span>
       </div>
     );
   }
@@ -74,6 +119,59 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
 
       {/* Content */}
       <div className="flex flex-col flex-1 min-w-0">
+        {/* Thinking section */}
+        {hasThinking && (
+          thinkingDone ? (
+            <div className="mb-3">
+              <button
+                onClick={() => setThinkExpanded((x) => !x)}
+                className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80 mb-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <BrainIcon />
+                <span>Thought for a moment</span>
+                <ChevronIcon expanded={thinkExpanded} />
+              </button>
+              {thinkExpanded && (
+                <div
+                  className="text-xs leading-relaxed pl-3 whitespace-pre-wrap"
+                  style={{
+                    color: "var(--text-muted)",
+                    borderLeft: "2px solid var(--border)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {thinking}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Still streaming inside <think> */
+            <div className="mb-3">
+              <div
+                className="flex items-center gap-1.5 text-xs mb-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <BrainIcon />
+                <span>Thinking…</span>
+                <span className="streaming-cursor" aria-hidden="true" />
+              </div>
+              <div
+                className="text-xs leading-relaxed pl-3 whitespace-pre-wrap"
+                style={{
+                  color: "var(--text-muted)",
+                  borderLeft: "2px solid var(--border)",
+                  fontStyle: "italic",
+                  maxHeight: "8rem",
+                  overflowY: "auto",
+                }}
+              >
+                {thinking}
+              </div>
+            </div>
+          )
+        )}
+
         <div
           className="text-sm leading-relaxed prose-sm"
           style={{ color: "var(--text)" }}
@@ -118,14 +216,14 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
               li: ({ children }) => <li className="text-sm">{children}</li>,
             }}
           >
-            {message.content}
+            {response}
           </ReactMarkdown>
-          {message.isStreaming && (
+          {message.isStreaming && thinkingDone && (
             <span className="streaming-cursor" aria-hidden="true" />
           )}
         </div>
 
-        {/* Action bar — copy, retry, feedback, model info */}
+        {/* Action bar — timestamp, copy, retry, feedback, model info */}
         {!message.isStreaming && (
           <div
             className="flex items-center gap-1 mt-2.5"
@@ -159,10 +257,19 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
               onFeedback={onFeedback ? (r) => onFeedback(message.id, r) : undefined}
             />
 
-            {/* Separator + model info */}
-            <span className="text-[11px] ml-1">
-              via {message.model_used ? modelShortName(message.model_used) : "groq"} •{" "}
-              {formatCost(message.cost_usd ?? 0)}
+            {/* Timestamp + model + cost + tokens */}
+            <span className="text-[11px] ml-1 flex items-center gap-1" suppressHydrationWarning>
+              <span>{formatTime(message.timestamp)}</span>
+              <span>·</span>
+              <span>via {message.model_used ? modelShortName(message.model_used) : "auto"}</span>
+              <span>·</span>
+              <span>{formatCost(message.cost_usd ?? 0)}</span>
+              {totalTokens > 0 && (
+                <>
+                  <span>·</span>
+                  <span>{totalTokens.toLocaleString()} tok</span>
+                </>
+              )}
             </span>
           </div>
         )}
@@ -203,6 +310,34 @@ function RetryIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <polyline points="1 4 1 10 7 10" />
       <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
+  );
+}
+
+function BrainIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M9.5 2a2.5 2.5 0 0 1 5 0v.5" />
+      <path d="M2 9.5a2.5 2.5 0 0 1 0 5H2.5" />
+      <path d="M21.5 9.5a2.5 2.5 0 0 0 0 5H21" />
+      <path d="M12 21.5a2.5 2.5 0 0 1-5 0V21" />
+      <rect x="6" y="6" width="12" height="12" rx="3" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+    >
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
