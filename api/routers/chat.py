@@ -43,10 +43,21 @@ _DEEP_KEYWORDS = {"in detail", "comprehensive", "deep dive", "elaborate", "thoro
 _SMART_KEYWORDS = {"compare", "analyze", "analyse", "what do you think", "opinion", "philosophy", "approach to", "how would you", "pros and cons", "trade-off", "tradeoff", "why do you"}
 _TURBO_PHRASES = {"hi", "hey", "hello", "thanks", "thank you", "ok", "okay", "cool", "nice", "got it", "sure"}
 
+# Known model aliases that should be treated as "let the router decide"
+_AUTO_ROUTE_ALIASES = {"selfgpt-free", "selfgpt-pro", "auto", "default"}
+
+# All valid model names registered in LiteLLM
+_KNOWN_MODELS = {
+    *_GROQ_FAST_CHAIN,
+    *_GROQ_DEFAULT_CHAIN,
+    _CLAUDE_HAIKU,
+    _CLAUDE_SONNET,
+}
+
 
 def _route_model(message: str, requested: str | None) -> str:
-    """Pick the best model unless the caller explicitly chose one."""
-    if requested:
+    """Pick the best model unless the caller explicitly chose a known model."""
+    if requested and requested not in _AUTO_ROUTE_ALIASES and requested in _KNOWN_MODELS:
         return requested
 
     text = message.lower().strip()
