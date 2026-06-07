@@ -85,6 +85,8 @@ class LiteLLMService:
                 headers=self.headers,
                 json=payload,
             )
+            if not resp.is_success:
+                logger.error("LiteLLM %s: %s", resp.status_code, resp.text)
             resp.raise_for_status()
             _capture_rl_headers(model, resp.headers)
             data = resp.json()
@@ -124,6 +126,9 @@ class LiteLLMService:
                 headers=self.headers,
                 json=payload,
             ) as resp:
+                if not resp.is_success:
+                    body = await resp.aread()
+                    logger.error("LiteLLM stream %s: %s", resp.status_code, body.decode())
                 resp.raise_for_status()
                 _capture_rl_headers(model, resp.headers)
                 async for line in resp.aiter_lines():

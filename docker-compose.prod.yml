@@ -7,11 +7,6 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -31,7 +26,7 @@ services:
       - "127.0.0.1:8000:8000"
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       litellm:
         condition: service_started
     env_file: .env

@@ -11,31 +11,11 @@ logger = logging.getLogger(__name__)
 class PocketBaseService:
     def __init__(self) -> None:
         self.base_url = settings.pocketbase_url
-        self._token: str | None = None
-
-    async def _get_token(self, force: bool = False) -> str:
-        if self._token and not force:
-            return self._token
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                f"{self.base_url}/api/collections/_superusers/auth-with-password",
-                json={
-                    "identity": settings.pocketbase_admin_email,
-                    "password": settings.pocketbase_admin_password,
-                },
-            )
-            resp.raise_for_status()
-            self._token = resp.json()["token"]
-        return self._token
+        self._headers = {"Authorization": f"Bearer {settings.pocketbase_token}"}
 
     async def _get(self, url: str, **kwargs) -> httpx.Response:
-        token = await self._get_token()
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
-            if resp.status_code == 401:
-                token = await self._get_token(force=True)
-                resp = await client.get(url, headers={"Authorization": f"Bearer {token}"}, **kwargs)
-            return resp
+            return await client.get(url, headers=self._headers, **kwargs)
 
     async def ensure_schema_fields(self) -> None:
         """Create collections if missing, then add any missing fields."""
@@ -59,18 +39,15 @@ class PocketBaseService:
             ],
         }
         try:
-            token = await self._get_token()
-
             async def _ensure_collection(collection: str, all_fields: list[dict]) -> None:
                 async with httpx.AsyncClient(timeout=10.0) as client:
-                    headers = {"Authorization": f"Bearer {token}"}
                     resp = await client.get(
-                        f"{self.base_url}/api/collections/{collection}", headers=headers
+                        f"{self.base_url}/api/collections/{collection}", headers=self._headers
                     )
                     if resp.status_code == 404:
                         create_resp = await client.post(
                             f"{self.base_url}/api/collections",
-                            headers=headers,
+                            headers=self._headers,
                             json={"name": collection, "type": "base", "fields": all_fields},
                         )
                         if create_resp.status_code in (200, 201):
@@ -88,7 +65,7 @@ class PocketBaseService:
                         return
                     patch_resp = await client.patch(
                         f"{self.base_url}/api/collections/{collection}",
-                        headers=headers,
+                        headers=self._headers,
                         json={"fields": schema.get("fields", []) + to_add},
                     )
                     if patch_resp.status_code in (200, 204):
@@ -112,11 +89,10 @@ class PocketBaseService:
         tokens_out: int = 0,
     ) -> str | None:
         try:
-            token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     f"{self.base_url}/api/collections/MeGPT_messages/records",
-                    headers={"Authorization": f"Bearer {token}"},
+                    headers=self._headers,
                     json={
                         "session_id": session_id,
                         "role": role,
@@ -135,11 +111,10 @@ class PocketBaseService:
 
     async def ensure_session(self, session_id: str, title: str = "", incognito: bool = False) -> None:
         try:
-            token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(
                     f"{self.base_url}/api/collections/MeGPT_sessions/records",
-                    headers={"Authorization": f"Bearer {token}"},
+                    headers=self._headers,
                     params={"filter": f'session_id="{session_id}"'},
                 )
                 data = resp.json()
@@ -148,7 +123,7 @@ class PocketBaseService:
                     created_str = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
                     await client.post(
                         f"{self.base_url}/api/collections/MeGPT_sessions/records",
-                        headers={"Authorization": f"Bearer {token}"},
+                        headers=self._headers,
                         json={"session_id": session_id, "title": title, "incognito": incognito, "created": created_str},
                     )
         except Exception:
@@ -158,12 +133,7 @@ class PocketBaseService:
         try:
             resp = await self._get(
                 f"{self.base_url}/api/collections/MeGPT_sessions/records",
-                params={
-                    "sort": "-created",
-                    "perPage": limit,
-                    "page": 1,
-                    "filter": "incognito=false",
-                },
+                params={"sort": "-created", "perPage": limit, "page": 1, "filter": "incognito=false"},
             )
             resp.raise_for_status()
             items = resp.json().get("items", [])
@@ -177,11 +147,7 @@ class PocketBaseService:
         try:
             resp = await self._get(
                 f"{self.base_url}/api/collections/MeGPT_messages/records",
-                params={
-                    "filter": f'session_id="{session_id}"',
-                    "sort": "+created",
-                    "perPage": 200,
-                },
+                params={"filter": f'session_id="{session_id}"', "sort": "+created", "perPage": 200},
             )
             resp.raise_for_status()
             items = resp.json().get("items", [])
@@ -196,11 +162,7 @@ class PocketBaseService:
         try:
             resp = await self._get(
                 f"{self.base_url}/api/collections/MeGPT_messages/records",
-                params={
-                    "perPage": 1000,
-                    "page": 1,
-                    "fields": "cost_usd,tokens_in,tokens_out",
-                },
+                params={"perPage": 1000, "page": 1, "fields": "cost_usd,tokens_in,tokens_out"},
             )
             resp.raise_for_status()
             return resp.json().get("items", [])
@@ -208,15 +170,12 @@ class PocketBaseService:
             logger.exception("get_all_stats failed: %s", e)
             return []
 
-    async def save_feedback(
-        self, message_id: str, rating: int
-    ) -> bool:
+    async def save_feedback(self, message_id: str, rating: int) -> bool:
         try:
-            token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.patch(
                     f"{self.base_url}/api/collections/MeGPT_messages/records/{message_id}",
-                    headers={"Authorization": f"Bearer {token}"},
+                    headers=self._headers,
                     json={"feedback": rating},
                 )
                 resp.raise_for_status()

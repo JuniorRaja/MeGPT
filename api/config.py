@@ -15,8 +15,7 @@ class Settings(BaseSettings):
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
 
-    pocketbase_admin_email: str = ""
-    pocketbase_admin_password: str = ""
+    pocketbase_token: str = ""
 
     qdrant_collection: str = "megpt_knowledge"
     embed_dim: int = 768

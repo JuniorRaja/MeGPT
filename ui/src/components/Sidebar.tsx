@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import type { SessionRecord } from "@/lib/types";
+import { ThemeSwitcher } from "./ThemeSwitcher";
+import type { ThemeMode } from "@/lib/types";
+import { track } from "@/lib/tracking";
 
 interface Props {
   currentSessionId: string;
@@ -12,6 +15,8 @@ interface Props {
   allTimeCostUsd: number;
   allTimeTokens: number;
   onClose?: () => void;
+  mode: ThemeMode;
+  onToggleMode: () => void;
 }
 
 function truncate(str: string, len: number): string {
@@ -25,7 +30,7 @@ function fmtCost(usd: number): string {
   return inr < 0.01 ? "₹0.00" : `₹${inr.toFixed(2)}`;
 }
 
-export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat, onLoadSession, allTimeCostUsd, allTimeTokens, onClose }: Props) {
+export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat, onLoadSession, allTimeCostUsd, allTimeTokens, onClose, mode, onToggleMode }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (collapsed) {
@@ -149,7 +154,7 @@ export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat
               return (
                 <li key={s.id}>
                   <button
-                    onClick={() => onLoadSession(s.session_id)}
+                    onClick={() => { track("load_session"); onLoadSession(s.session_id); }}
                     className="w-full text-left px-3 py-2 rounded-xl text-sm transition-colors"
                     style={{
                       color: isActive ? "var(--text)" : "var(--text-muted)",
@@ -193,6 +198,7 @@ export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat
               Ask me anything
             </p>
           </div>
+          <ThemeSwitcher mode={mode} onToggleMode={onToggleMode} />
         </div>
         {(allTimeCostUsd > 0 || allTimeTokens > 0) && (
           <div

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatWindow } from "@/components/ChatWindow";
+import { LandingModal } from "@/components/LandingModal";
 import { Sidebar } from "@/components/Sidebar";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { getSessions } from "@/lib/api";
 import type { SessionRecord } from "@/lib/types";
 import { useChat } from "@/hooks/useChat";
@@ -38,8 +38,9 @@ export default function HomePage() {
     allTimeTokens,
     contextPercent,
   } = useChat();
-  const { theme, mode, setTheme, toggleMode } = useTheme();
+  const { mode, toggleMode } = useTheme();
 
+  const [showModal, setShowModal] = useState(true);
   // Sessions list owned here so Sidebar remounts don't cause fetch-flicker
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -85,6 +86,8 @@ export default function HomePage() {
 
   return (
     <div className="flex h-full overflow-x-hidden" style={{ background: "var(--bg)" }}>
+      {showModal && <LandingModal onStart={() => setShowModal(false)} />}
+
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -110,6 +113,8 @@ export default function HomePage() {
           allTimeCostUsd={allTimeCostUsd}
           allTimeTokens={allTimeTokens}
           onClose={() => setSidebarOpen(false)}
+          mode={mode}
+          onToggleMode={toggleMode}
         />
       </div>
 
@@ -155,13 +160,6 @@ export default function HomePage() {
             >
               <IncognitoIcon />
             </button>
-
-            <ThemeSwitcher
-              current={theme}
-              mode={mode}
-              onChange={setTheme}
-              onToggleMode={toggleMode}
-            />
           </div>
         </header>
 
