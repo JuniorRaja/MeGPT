@@ -90,6 +90,8 @@ class PocketBaseService:
     ) -> str | None:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
+                now = datetime.now(timezone.utc)
+                created_str = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
                 resp = await client.post(
                     f"{self.base_url}/api/collections/MeGPT_messages/records",
                     headers=self._headers,
@@ -101,6 +103,7 @@ class PocketBaseService:
                         "cost_usd": cost_usd,
                         "tokens_in": tokens_in,
                         "tokens_out": tokens_out,
+                        "created": created_str,
                     },
                 )
                 resp.raise_for_status()

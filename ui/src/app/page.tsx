@@ -38,7 +38,7 @@ export default function HomePage() {
     allTimeTokens,
     contextPercent,
   } = useChat();
-  const { mode, toggleMode } = useTheme();
+  const { theme, setTheme, mode, toggleMode } = useTheme();
 
   const [showModal, setShowModal] = useState(true);
   // Sessions list owned here so Sidebar remounts don't cause fetch-flicker
@@ -113,6 +113,8 @@ export default function HomePage() {
           allTimeCostUsd={allTimeCostUsd}
           allTimeTokens={allTimeTokens}
           onClose={() => setSidebarOpen(false)}
+          theme={theme}
+          onThemeChange={setTheme}
           mode={mode}
           onToggleMode={toggleMode}
         />
