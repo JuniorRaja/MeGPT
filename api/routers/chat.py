@@ -111,7 +111,7 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
     # Judge + embed run in parallel — no latency penalty on the happy path
-    (verdict, judge_reply, judge_cost), query_vector = await asyncio.gather(
+    (verdict, judge_reply, judge_cost, judge_tok_in, judge_tok_out), query_vector = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
     )
@@ -120,6 +120,7 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
         await pocketbase_service.save_message(
             session_id=req.session_id, role="assistant", content=judge_reply,
             model_used=_JUDGE_MODEL, cost_usd=judge_cost,
+            tokens_in=judge_tok_in, tokens_out=judge_tok_out,
         )
         return ChatResponse(
             response=judge_reply, session_id=req.session_id,
@@ -172,7 +173,7 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
     # Judge + embed run in parallel — no latency penalty on the happy path
-    (verdict, judge_reply, judge_cost), query_vector = await asyncio.gather(
+    (verdict, judge_reply, judge_cost, judge_tok_in, judge_tok_out), query_vector = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
     )
@@ -183,8 +184,9 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
             await pocketbase_service.save_message(
                 session_id=req.session_id, role="assistant", content=judge_reply,
                 model_used=_JUDGE_MODEL, cost_usd=judge_cost,
+                tokens_in=judge_tok_in, tokens_out=judge_tok_out,
             )
-            yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': _JUDGE_MODEL, 'cost_usd': judge_cost, 'tokens_in': 0, 'tokens_out': 0})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': _JUDGE_MODEL, 'cost_usd': judge_cost, 'tokens_in': judge_tok_in, 'tokens_out': judge_tok_out})}\n\n"
 
         return StreamingResponse(canned_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)
 

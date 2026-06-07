@@ -169,13 +169,13 @@ _JUDGE_FALLBACK = {
 litellm_service = LiteLLMService()
 
 
-async def judge_message(message: str) -> tuple[str, str, float]:
+async def judge_message(message: str) -> tuple[str, str, float, int, int]:
     """Classify and optionally generate a reply using the fast model.
 
-    Returns (verdict, reply, cost_usd).
+    Returns (verdict, reply, cost_usd, tokens_in, tokens_out).
     verdict: 'pass' | 'deflect' | 'block'
     reply: generated response text (empty string when verdict is 'pass')
-    Fails open — returns ('pass', '', 0.0) on any error.
+    Fails open — returns ('pass', '', 0.0, 0, 0) on any error.
     """
     try:
         payload = {
@@ -197,14 +197,16 @@ async def judge_message(message: str) -> tuple[str, str, float]:
             _capture_rl_headers(_JUDGE_MODEL, resp.headers)
             data = resp.json()
             usage = data.get("usage", {})
-            cost = _compute_cost(_JUDGE_MODEL, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+            tokens_in = usage.get("prompt_tokens", 0)
+            tokens_out = usage.get("completion_tokens", 0)
+            cost = _compute_cost(_JUDGE_MODEL, tokens_in, tokens_out)
             parsed = json.loads(data["choices"][0]["message"]["content"].strip())
             verdict = parsed.get("verdict", "pass")
             if verdict not in ("pass", "deflect", "block"):
                 verdict = "pass"
             reply = parsed.get("reply") or _JUDGE_FALLBACK.get(verdict, "")
-            logger.info("judge verdict=%s cost=%.6f for message=%.60r", verdict, cost, message)
-            return verdict, reply, cost
+            logger.info("judge verdict=%s tokens=%d+%d cost=%.6f for message=%.60r", verdict, tokens_in, tokens_out, cost, message)
+            return verdict, reply, cost, tokens_in, tokens_out
     except Exception:
         logger.warning("judge_message failed, defaulting to pass")
-        return "pass", "", 0.0
+        return "pass", "", 0.0, 0, 0
