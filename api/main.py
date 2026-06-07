@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 
 from config import settings
 from limiter import limiter
-from routers import chat, health, ingest, sessions
+from routers import chat, feedback, health, ingest, sessions
 from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
 
@@ -41,3 +41,4 @@ app.include_router(health.router, tags=["health"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
+app.include_router(feedback.router, prefix="/feedback", tags=["feedback"])

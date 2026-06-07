@@ -74,6 +74,7 @@ class PocketBaseService:
             await _add_fields("messages", [
                 {"name": "tokens_in", "type": "number", "required": False},
                 {"name": "tokens_out", "type": "number", "required": False},
+                {"name": "feedback", "type": "number", "required": False},
             ])
         except Exception:
             logger.exception("ensure_schema_fields failed (non-fatal)")

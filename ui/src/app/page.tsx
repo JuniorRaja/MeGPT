@@ -63,6 +63,8 @@ export default function HomePage() {
 
   const hasMessages = messages.length > 0 || isLoading;
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const handleFeedback = useCallback(
     async (messageId: string, rating: 1 | -1) => {
       try {
@@ -82,54 +84,85 @@ export default function HomePage() {
   );
 
   return (
-    <div className="flex h-full" style={{ background: "var(--bg)" }}>
-      <Sidebar
-        currentSessionId={sessionId}
-        sessions={sessions}
-        sessionsLoading={sessionsLoading}
-        onNewChat={newChat}
-        onLoadSession={loadSession}
-        allTimeCostUsd={allTimeCostUsd}
-        allTimeTokens={allTimeTokens}
-      />
+    <div className="flex h-full overflow-x-hidden" style={{ background: "var(--bg)" }}>
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar wrapper — drawer on mobile, in-flow on desktop */}
+      <div
+        className={[
+          "fixed inset-y-0 left-0 z-30 transition-transform duration-200",
+          "md:relative md:inset-auto md:z-auto md:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        ].join(" ")}
+      >
+        <Sidebar
+          currentSessionId={sessionId}
+          sessions={sessions}
+          sessionsLoading={sessionsLoading}
+          onNewChat={newChat}
+          onLoadSession={loadSession}
+          allTimeCostUsd={allTimeCostUsd}
+          allTimeTokens={allTimeTokens}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="flex items-center justify-end px-4 py-3 shrink-0 gap-3">
-          {/* Session stats */}
-          {hasMessages && (sessionCostUsd > 0 || sessionTokens > 0) && (
-            <div
-              className="text-[11px] flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-              style={{
-                color: "var(--text-muted)",
-                background: "var(--hover-bg)",
-                border: "1px solid var(--border)",
-              }}
-              suppressHydrationWarning
-            >
-              <span>{fmtCost(sessionCostUsd)}</span>
-              <span>·</span>
-              <span>{sessionTokens.toLocaleString()} tok</span>
-            </div>
-          )}
-
-          {/* Incognito button */}
+        <header className="flex items-center px-4 py-3 shrink-0 gap-3 min-w-0">
+          {/* Hamburger — mobile only */}
           <button
-            onClick={isIncognito ? newChat : startIncognitoChat}
-            title={isIncognito ? "Exit incognito (start normal chat)" : "Start incognito chat"}
-            className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-            style={{
-              color: isIncognito ? "var(--accent)" : "var(--text-muted)",
-            }}
+            className="md:hidden p-1.5 rounded-lg transition-opacity hover:opacity-70 shrink-0"
+            style={{ color: "var(--text-muted)" }}
+            onClick={() => setSidebarOpen(true)}
+            title="Open sidebar"
           >
-            <IncognitoIcon />
+            <MenuIcon />
           </button>
 
-          <ThemeSwitcher
-            current={theme}
-            mode={mode}
-            onChange={setTheme}
-            onToggleMode={toggleMode}
-          />
+          {/* Right-side controls */}
+          <div className="flex items-center gap-3 ml-auto min-w-0">
+            {/* Session stats */}
+            {hasMessages && (sessionCostUsd > 0 || sessionTokens > 0) && (
+              <div
+                className="text-[11px] flex items-center gap-1.5 px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap"
+                style={{
+                  color: "var(--text-muted)",
+                  background: "var(--hover-bg)",
+                  border: "1px solid var(--border)",
+                }}
+                suppressHydrationWarning
+              >
+                <span>{fmtCost(sessionCostUsd)}</span>
+                <span>·</span>
+                <span>{sessionTokens.toLocaleString()} tok</span>
+              </div>
+            )}
+
+            {/* Incognito button */}
+            <button
+              onClick={isIncognito ? newChat : startIncognitoChat}
+              title={isIncognito ? "Exit incognito (start normal chat)" : "Start incognito chat"}
+              className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+              style={{
+                color: isIncognito ? "var(--accent)" : "var(--text-muted)",
+              }}
+            >
+              <IncognitoIcon />
+            </button>
+
+            <ThemeSwitcher
+              current={theme}
+              mode={mode}
+              onChange={setTheme}
+              onToggleMode={toggleMode}
+            />
+          </div>
         </header>
 
         {/* Incognito banner */}
@@ -180,6 +213,17 @@ export default function HomePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/* ── Menu / Hamburger SVG ──────────────────────────────────────────────────── */
+function MenuIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
   );
 }
 

@@ -11,6 +11,7 @@ interface Props {
   onLoadSession: (sessionId: string) => void;
   allTimeCostUsd: number;
   allTimeTokens: number;
+  onClose?: () => void;
 }
 
 function truncate(str: string, len: number): string {
@@ -24,7 +25,7 @@ function fmtCost(usd: number): string {
   return inr < 0.01 ? "₹0.00" : `₹${inr.toFixed(2)}`;
 }
 
-export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat, onLoadSession, allTimeCostUsd, allTimeTokens }: Props) {
+export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat, onLoadSession, allTimeCostUsd, allTimeTokens, onClose }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (collapsed) {
@@ -60,7 +61,7 @@ export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat
         </span>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setCollapsed(true)}
+            onClick={() => { setCollapsed(true); onClose?.(); }}
             className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
             title="Collapse sidebar"
             style={{ color: "var(--text-muted)" }}

@@ -226,13 +226,13 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
         {/* Action bar — timestamp, copy, retry, feedback, model info */}
         {!message.isStreaming && (
           <div
-            className="flex items-center gap-1 mt-2.5"
+            className="flex flex-wrap items-center gap-1 mt-2.5"
             style={{ color: "var(--text-muted)" }}
           >
             {/* Copy button */}
             <button
               onClick={handleCopy}
-              className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+              className="p-1.5 rounded-lg transition-opacity hover:opacity-70 shrink-0"
               title={copied ? "Copied!" : "Copy response"}
               style={{ color: copied ? "var(--accent)" : "var(--text-muted)" }}
             >
@@ -243,7 +243,7 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
             {onRetry && (
               <button
                 onClick={() => onRetry(message.id)}
-                className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                className="p-1.5 rounded-lg transition-opacity hover:opacity-70 shrink-0"
                 title="Retry"
                 style={{ color: "var(--text-muted)" }}
               >
@@ -258,10 +258,10 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
             />
 
             {/* Timestamp + model + cost + tokens */}
-            <span className="text-[11px] ml-1 flex items-center gap-1" suppressHydrationWarning>
+            <span className="text-[11px] ml-1 flex items-center gap-1 whitespace-nowrap" suppressHydrationWarning>
               <span>{formatTime(message.timestamp)}</span>
               <span>·</span>
-              <span>via {message.model_used ? modelShortName(message.model_used) : "auto"}</span>
+              <span>{message.model_used ? modelShortName(message.model_used) : "auto"}</span>
               <span>·</span>
               <span>{formatCost(message.cost_usd ?? 0)}</span>
               {totalTokens > 0 && (

@@ -85,10 +85,10 @@ export function WelcomeScreen({ onChipClick, model, onModelChange }: Props) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
       {/* Greeting */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-8 max-w-full">
         <SparkleIcon />
         <h1
-          className="text-4xl md:text-5xl font-light tracking-tight transition-opacity duration-300"
+          className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tight transition-opacity duration-300 min-w-0"
           style={{
             color: "var(--text)",
             fontFamily: "var(--font-heading)",

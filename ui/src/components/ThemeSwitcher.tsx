@@ -18,14 +18,14 @@ interface Props {
 
 export function ThemeSwitcher({ current, mode, onChange, onToggleMode }: Props) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 shrink-0">
       {/* Theme pills */}
       <div className="flex gap-1 p-1 rounded-full" style={{ background: "var(--hover-bg)" }}>
         {THEMES.map((t) => (
           <button
             key={t.id}
             onClick={() => onChange(t.id)}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all duration-150"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-medium rounded-full transition-all duration-150"
             style={{
               color: current === t.id ? "var(--accent)" : "var(--text-muted)",
               border: current === t.id ? "1px solid var(--accent)" : "1px solid transparent",
@@ -43,7 +43,7 @@ export function ThemeSwitcher({ current, mode, onChange, onToggleMode }: Props) 
                 flexShrink: 0,
               }}
             />
-            {t.label}
+            <span className="hidden sm:inline">{t.label}</span>
           </button>
         ))}
       </div>
@@ -51,7 +51,7 @@ export function ThemeSwitcher({ current, mode, onChange, onToggleMode }: Props) 
       {/* Dark/Light toggle */}
       <button
         onClick={onToggleMode}
-        className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+        className="p-1.5 rounded-lg transition-opacity hover:opacity-70 shrink-0"
         style={{ color: "var(--text-muted)" }}
         title={mode === "light" ? "Switch to dark mode" : "Switch to light mode"}
       >
