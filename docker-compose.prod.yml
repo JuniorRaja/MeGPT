@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ghcr.io/JuniorRaja/megpt-api:latest
+    image: ghcr.io/juniorraja/megpt-api:latest
     container_name: megpt_api
     ports:
       - "127.0.0.1:8000:8000"
@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
 
   ui:
-    image: ghcr.io/JuniorRaja/megpt-ui:latest
+    image: ghcr.io/juniorraja/megpt-ui:latest
     container_name: megpt_ui
     ports:
       - "127.0.0.1:3000:3000"
