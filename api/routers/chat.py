@@ -1,4 +1,6 @@
+import asyncio
 import json
+import random
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, status
@@ -7,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from limiter import limiter
 from models.chat import ChatRequest, ChatResponse
 from services.embed_service import embed_service
-from services.litellm_service import _compute_cost, estimate_cost, groq_remaining_requests, litellm_service
+from services.litellm_service import _compute_cost, estimate_cost, groq_remaining_requests, judge_message, litellm_service
 from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
 
@@ -26,33 +28,52 @@ When context from PR's knowledge base is provided, use it accurately.
 If context doesn't cover the question, say so briefly and honestly."""
 
 # Groq fallback chains — ordered by preference within each tier.
-# When a model hits 429, the next one in its chain is tried before going to Claude.
 _GROQ_FAST_CHAIN = ["llama-3.1-8b-instant", "allam-2-7b"]
 _GROQ_DEFAULT_CHAIN = [
     "llama-3.3-70b-versatile",
     "meta-llama/llama-4-scout-17b-16e-instruct",
     "qwen/qwen3-32b",
 ]
-_ALL_GROQ_MODELS = {*_GROQ_FAST_CHAIN, *_GROQ_DEFAULT_CHAIN}
 
 _CLAUDE_HAIKU = "claude-haiku-4-5-20251001"
 _CLAUDE_SONNET = "claude-sonnet-4-5-20251001"
 
-# Keywords that bump routing up a tier
 _DEEP_KEYWORDS = {"in detail", "comprehensive", "deep dive", "elaborate", "thorough", "everything about", "full breakdown"}
 _SMART_KEYWORDS = {"compare", "analyze", "analyse", "what do you think", "opinion", "philosophy", "approach to", "how would you", "pros and cons", "trade-off", "tradeoff", "why do you"}
 _TURBO_PHRASES = {"hi", "hey", "hello", "thanks", "thank you", "ok", "okay", "cool", "nice", "got it", "sure"}
 
-# Known model aliases that should be treated as "let the router decide"
 _AUTO_ROUTE_ALIASES = {"selfgpt-free", "selfgpt-pro", "auto", "default"}
 
-# All valid model names registered in LiteLLM
 _KNOWN_MODELS = {
     *_GROQ_FAST_CHAIN,
     *_GROQ_DEFAULT_CHAIN,
     _CLAUDE_HAIKU,
     _CLAUDE_SONNET,
 }
+
+# Canned responses for judge verdicts — in-character with SelfGPT's tone
+_DEFLECT_POOL = [
+    "I'm a one-subject expert — that subject is Prasanna. What would you like to know about him?",
+    "My world revolves around one person. Ask me something about Prasanna.",
+    "Bit outside my lane. What do you want to know about Prasanna?",
+    "I only know about Prasanna — but he's worth asking about.",
+    "That's not my domain, but Prasanna is. Fire away.",
+]
+
+_BLOCK_POOL = [
+    "Nice try. I'm Prasanna's digital twin, not a sandbox.",
+    "That's not happening. Ask me something real about Prasanna.",
+    "Clever, but no. What do you actually want to know about him?",
+    "I see what you're doing. Let's keep this about Prasanna, yeah?",
+    "Not today. Try asking something genuine about Prasanna instead.",
+]
+
+_SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+
+def _pick_canned(verdict: str) -> str:
+    pool = _BLOCK_POOL if verdict == "block" else _DEFLECT_POOL
+    return random.choice(pool)
 
 
 def _route_model(message: str, requested: str | None) -> str:
@@ -80,7 +101,6 @@ def _get_fallback_chain(model: str) -> list[str]:
     for chain in (_GROQ_FAST_CHAIN, _GROQ_DEFAULT_CHAIN):
         if model in chain:
             candidates = chain[chain.index(model):]
-            # Drop models we know are exhausted; unknown state (None) is treated as available
             available = [m for m in candidates if (groq_remaining_requests(m) or 1) > 0]
             return available if available else [chain[-1]]
     return [model]
@@ -111,13 +131,23 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
         req.session_id, title=req.title or req.message[:60], incognito=req.incognito
     )
     history = await _load_history(req.session_id)
-    await pocketbase_service.save_message(
-        session_id=req.session_id,
-        role="user",
-        content=req.message,
+    await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
+
+    # Judge + embed run in parallel — no latency penalty on the happy path
+    verdict, query_vector = await asyncio.gather(
+        judge_message(req.message),
+        embed_service.embed(req.message),
     )
 
-    query_vector = await embed_service.embed(req.message)
+    if verdict != "pass":
+        canned = _pick_canned(verdict)
+        await pocketbase_service.save_message(
+            session_id=req.session_id, role="assistant", content=canned, model_used="judge",
+        )
+        return ChatResponse(
+            response=canned, session_id=req.session_id, model_used="judge", cost_usd=0.0, sources=[],
+        )
+
     chunks = await qdrant_service.search(query_vector, limit=5)
     context_block = "\n\n".join(f"[{i+1}] {c}" for i, c in enumerate(chunks) if c)
 
@@ -145,7 +175,6 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
         model_used=llm_resp.model,
         cost_usd=llm_resp.cost_usd,
     )
-
     return ChatResponse(
         response=llm_resp.content,
         session_id=req.session_id,
@@ -162,13 +191,26 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
         req.session_id, title=req.title or req.message[:60], incognito=req.incognito
     )
     history = await _load_history(req.session_id)
-    await pocketbase_service.save_message(
-        session_id=req.session_id,
-        role="user",
-        content=req.message,
+    await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
+
+    # Judge + embed run in parallel — no latency penalty on the happy path
+    verdict, query_vector = await asyncio.gather(
+        judge_message(req.message),
+        embed_service.embed(req.message),
     )
 
-    query_vector = await embed_service.embed(req.message)
+    if verdict != "pass":
+        canned = _pick_canned(verdict)
+
+        async def canned_stream():
+            yield f"data: {json.dumps({'token': canned})}\n\n"
+            await pocketbase_service.save_message(
+                session_id=req.session_id, role="assistant", content=canned, model_used="judge",
+            )
+            yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': 'judge', 'cost_usd': 0.0, 'tokens_in': 0, 'tokens_out': 0})}\n\n"
+
+        return StreamingResponse(canned_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)
+
     chunks = await qdrant_service.search(query_vector, limit=5)
     context_block = "\n\n".join(f"[{i+1}] {c}" for i, c in enumerate(chunks) if c)
 
@@ -193,7 +235,7 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
                     elif usage:
                         tokens_in = usage.get("prompt_tokens", 0)
                         tokens_out = usage.get("completion_tokens", 0)
-                break  # success
+                break
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 429 and i < len(chain) - 1:
                     collected.clear()
@@ -208,7 +250,6 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
                 return
 
         full_content = "".join(collected)
-        # Fall back to character-count estimate if provider didn't send usage
         if tokens_in == 0 and tokens_out == 0:
             cost_usd = estimate_cost(model, input_text, full_content)
             tokens_in = max(1, len(input_text) // 4)
@@ -227,8 +268,4 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
         )
         yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': model, 'cost_usd': cost_usd, 'tokens_in': tokens_in, 'tokens_out': tokens_out})}\n\n"
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)
