@@ -7,13 +7,11 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     litellm_url: str = "http://localhost:4000"
     pocketbase_url: str = "http://localhost:8090"
-    ollama_url: str = "http://localhost:11434"
 
     litellm_master_key: str = "sk-selfgpt-master-key"
     default_model: str = "llama-3.3-70b-versatile"
-    embed_model: str = "nomic-embed-text"
+    embed_model: str = "nomic-ai/nomic-embed-text-v1.5"
 
-    langfuse_host: str = "http://localhost:3100"
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
 

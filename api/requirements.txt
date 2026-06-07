@@ -8,3 +8,4 @@ langfuse==2.27.0
 python-dotenv==1.0.1
 tiktoken==0.7.0
 slowapi==0.1.9
+fastembed==0.3.6
