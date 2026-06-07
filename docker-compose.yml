@@ -7,6 +7,11 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -19,32 +24,6 @@ services:
     restart: unless-stopped
     env_file: .env
 
-  langfuse_db:
-    image: postgres:15-alpine
-    container_name: selfgpt_langfuse_db
-    environment:
-      - POSTGRES_USER=langfuse
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=langfuse
-    volumes:
-      - langfuse_db_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  langfuse:
-    image: langfuse/langfuse:2
-    container_name: selfgpt_langfuse
-    ports:
-      - "3100:3000"
-    depends_on:
-      - langfuse_db
-    environment:
-      - DATABASE_URL=postgresql://langfuse:secret@langfuse_db:5432/langfuse
-      - NEXTAUTH_SECRET=local-secret-change-later
-      - SALT=local-salt-change-later
-      - NEXTAUTH_URL=http://localhost:3100
-      - TELEMETRY_ENABLED=false
-    restart: unless-stopped
-
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
     container_name: selfgpt_pocketbase
@@ -54,43 +33,37 @@ services:
       - pocketbase_data:/pb_data
     restart: unless-stopped
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: selfgpt_ollama
+  api:
+    build: ./api
+    container_name: selfgpt_api
     ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    # Uncomment if you have an NVIDIA GPU:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-
-  ollama-init:
-    image: ollama/ollama:latest
-    container_name: selfgpt_ollama_init
+      - "8000:8000"
     depends_on:
-      - ollama
-    volumes:
-      - ollama_data:/root/.ollama
-    entrypoint: >
-      sh -c "
-        echo 'Waiting for Ollama...' &&
-        sleep 5 &&
-        ollama pull nomic-embed-text &&
-        echo 'nomic-embed-text ready.'
-      "
+      qdrant:
+        condition: service_healthy
+      litellm:
+        condition: service_started
+      pocketbase:
+        condition: service_started
+    env_file: .env
     environment:
-      - OLLAMA_HOST=http://ollama:11434
-    restart: no
+      - QDRANT_URL=http://qdrant:6333
+      - LITELLM_URL=http://litellm:4000
+      - POCKETBASE_URL=http://pocketbase:8090
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./ui
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: selfgpt_ui
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   qdrant_data:
-  langfuse_db_data:
   pocketbase_data:
-  ollama_data:
