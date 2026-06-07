@@ -3,7 +3,7 @@ services:
     image: qdrant/qdrant:latest
     container_name: selfgpt_qdrant
     ports:
-      - "6333:6333"
+      - "127.0.0.1:6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
@@ -17,7 +17,7 @@ services:
     image: ghcr.io/berriai/litellm:main-latest
     container_name: selfgpt_litellm
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     volumes:
       - ./litellm_config.yaml:/app/config.yaml
     command: ["--config", "/app/config.yaml", "--port", "4000"]
@@ -28,13 +28,13 @@ services:
     image: ghcr.io/muchobien/pocketbase:latest
     container_name: selfgpt_pocketbase
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
     volumes:
       - pocketbase_data:/pb_data
     restart: unless-stopped
 
   api:
-    build: ./api
+    image: ghcr.io/JuniorRaja/selfgpt-api:latest
     container_name: selfgpt_api
     ports:
       - "127.0.0.1:8000:8000"
@@ -53,10 +53,7 @@ services:
     restart: unless-stopped
 
   ui:
-    build:
-      context: ./ui
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    image: ghcr.io/JuniorRaja/selfgpt-ui:latest
     container_name: selfgpt_ui
     ports:
       - "127.0.0.1:3000:3000"
