@@ -38,44 +38,66 @@ class PocketBaseService:
             return resp
 
     async def ensure_schema_fields(self) -> None:
-        """Add incognito (sessions) and tokens_in/tokens_out (messages) fields if missing."""
+        """Create collections if missing, then add any missing fields."""
+        _COLLECTIONS = {
+            "MeGPT_sessions": [
+                {"name": "session_id", "type": "text", "required": True},
+                {"name": "title", "type": "text", "required": False},
+                {"name": "incognito", "type": "bool", "required": False},
+                {"name": "created", "type": "datetime", "required": False},
+            ],
+            "MeGPT_messages": [
+                {"name": "session_id", "type": "text", "required": True},
+                {"name": "role", "type": "text", "required": True},
+                {"name": "content", "type": "text", "required": True},
+                {"name": "model_used", "type": "text", "required": False},
+                {"name": "cost_usd", "type": "number", "required": False},
+                {"name": "tokens_in", "type": "number", "required": False},
+                {"name": "tokens_out", "type": "number", "required": False},
+                {"name": "feedback", "type": "number", "required": False},
+                {"name": "created", "type": "datetime", "required": False},
+            ],
+        }
         try:
             token = await self._get_token()
 
-            async def _add_fields(collection: str, needed: list[dict]) -> None:
+            async def _ensure_collection(collection: str, all_fields: list[dict]) -> None:
                 async with httpx.AsyncClient(timeout=10.0) as client:
+                    headers = {"Authorization": f"Bearer {token}"}
                     resp = await client.get(
-                        f"{self.base_url}/api/collections/{collection}",
-                        headers={"Authorization": f"Bearer {token}"},
+                        f"{self.base_url}/api/collections/{collection}", headers=headers
                     )
+                    if resp.status_code == 404:
+                        create_resp = await client.post(
+                            f"{self.base_url}/api/collections",
+                            headers=headers,
+                            json={"name": collection, "type": "base", "fields": all_fields},
+                        )
+                        if create_resp.status_code in (200, 201):
+                            logger.info("Created collection: %s", collection)
+                        else:
+                            logger.warning("Failed to create %s: %s %s", collection, create_resp.status_code, create_resp.text)
+                        return
                     if resp.status_code != 200:
                         logger.warning("Could not fetch %s schema: %s", collection, resp.status_code)
                         return
                     schema = resp.json()
                     existing = {f["name"] for f in schema.get("fields", [])}
-                    to_add = [f for f in needed if f["name"] not in existing]
+                    to_add = [f for f in all_fields if f["name"] not in existing]
                     if not to_add:
                         return
                     patch_resp = await client.patch(
                         f"{self.base_url}/api/collections/{collection}",
-                        headers={"Authorization": f"Bearer {token}"},
+                        headers=headers,
                         json={"fields": schema.get("fields", []) + to_add},
                     )
                     if patch_resp.status_code in (200, 204):
                         logger.info("Added fields to %s: %s", collection, [f["name"] for f in to_add])
                     else:
-                        logger.warning(
-                            "Failed to patch %s: %s %s", collection, patch_resp.status_code, patch_resp.text
-                        )
+                        logger.warning("Failed to patch %s: %s %s", collection, patch_resp.status_code, patch_resp.text)
 
-            await _add_fields("sessions", [
-                {"name": "incognito", "type": "bool", "required": False},
-            ])
-            await _add_fields("messages", [
-                {"name": "tokens_in", "type": "number", "required": False},
-                {"name": "tokens_out", "type": "number", "required": False},
-                {"name": "feedback", "type": "number", "required": False},
-            ])
+            for name, fields in _COLLECTIONS.items():
+                await _ensure_collection(name, fields)
         except Exception:
             logger.exception("ensure_schema_fields failed (non-fatal)")
 
@@ -93,7 +115,7 @@ class PocketBaseService:
             token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
-                    f"{self.base_url}/api/collections/messages/records",
+                    f"{self.base_url}/api/collections/MeGPT_messages/records",
                     headers={"Authorization": f"Bearer {token}"},
                     json={
                         "session_id": session_id,
@@ -116,7 +138,7 @@ class PocketBaseService:
             token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(
-                    f"{self.base_url}/api/collections/sessions/records",
+                    f"{self.base_url}/api/collections/MeGPT_sessions/records",
                     headers={"Authorization": f"Bearer {token}"},
                     params={"filter": f'session_id="{session_id}"'},
                 )
@@ -125,7 +147,7 @@ class PocketBaseService:
                     now = datetime.now(timezone.utc)
                     created_str = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
                     await client.post(
-                        f"{self.base_url}/api/collections/sessions/records",
+                        f"{self.base_url}/api/collections/MeGPT_sessions/records",
                         headers={"Authorization": f"Bearer {token}"},
                         json={"session_id": session_id, "title": title, "incognito": incognito, "created": created_str},
                     )
@@ -135,7 +157,7 @@ class PocketBaseService:
     async def get_sessions(self, limit: int = 30) -> list[dict]:
         try:
             resp = await self._get(
-                f"{self.base_url}/api/collections/sessions/records",
+                f"{self.base_url}/api/collections/MeGPT_sessions/records",
                 params={
                     "sort": "-created",
                     "perPage": limit,
@@ -154,7 +176,7 @@ class PocketBaseService:
     async def get_messages(self, session_id: str) -> list[dict]:
         try:
             resp = await self._get(
-                f"{self.base_url}/api/collections/messages/records",
+                f"{self.base_url}/api/collections/MeGPT_messages/records",
                 params={
                     "filter": f'session_id="{session_id}"',
                     "sort": "+created",
@@ -173,7 +195,7 @@ class PocketBaseService:
         """Return lightweight cost/token data for all messages (client-side summing)."""
         try:
             resp = await self._get(
-                f"{self.base_url}/api/collections/messages/records",
+                f"{self.base_url}/api/collections/MeGPT_messages/records",
                 params={
                     "perPage": 1000,
                     "page": 1,
@@ -193,7 +215,7 @@ class PocketBaseService:
             token = await self._get_token()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.patch(
-                    f"{self.base_url}/api/collections/messages/records/{message_id}",
+                    f"{self.base_url}/api/collections/MeGPT_messages/records/{message_id}",
                     headers={"Authorization": f"Bearer {token}"},
                     json={"feedback": rating},
                 )

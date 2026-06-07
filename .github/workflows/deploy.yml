@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPO: ${{ github.repository_owner }}
+  REPO: juniorraja
 
 jobs:
   build-push:
