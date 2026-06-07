@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class PocketBaseService:
     def __init__(self) -> None:
-        self.base_url = settings.pocketbase_url
+        self.base_url = settings.pocketbase_url.rstrip("/")
         self._headers = {"Authorization": f"Bearer {settings.pocketbase_token}"}
 
     async def _get(self, url: str, **kwargs) -> httpx.Response:
