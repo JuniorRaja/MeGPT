@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { getSessionMessages, streamMessage } from "@/lib/api";
+import { getSessionMessages, getStats, streamMessage } from "@/lib/api";
 import type { Message, MessageRecord } from "@/lib/types";
 
 function recordToMessage(r: MessageRecord): Message {
@@ -12,17 +12,55 @@ function recordToMessage(r: MessageRecord): Message {
     content: r.content,
     model_used: r.model_used || undefined,
     cost_usd: r.cost_usd || undefined,
+    tokens_in: r.tokens_in || undefined,
+    tokens_out: r.tokens_out || undefined,
     timestamp: r.created ? new Date(r.created) : new Date(),
   };
+}
+
+function sumMessages(msgs: Message[]) {
+  return msgs.reduce(
+    (acc, m) => ({
+      cost: acc.cost + (m.cost_usd ?? 0),
+      tokens: acc.tokens + (m.tokens_in ?? 0) + (m.tokens_out ?? 0),
+    }),
+    { cost: 0, tokens: 0 }
+  );
 }
 
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string>(() => uuidv4());
   const [isLoading, setIsLoading] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isIncognito, setIsIncognito] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string>("selfgpt-free");
+  const [activeModel, setActiveModel] = useState<string>("auto");
+
+  // Session-level cost / token totals
+  const [sessionCostUsd, setSessionCostUsd] = useState(0);
+  const [sessionTokens, setSessionTokens] = useState(0);
+
+  // All-time totals (fetched once on mount, incremented locally after that)
+  const [allTimeCostUsd, setAllTimeCostUsd] = useState(0);
+  const [allTimeTokens, setAllTimeTokens] = useState(0);
+
   const abortRef = useRef<AbortController | null>(null);
+
+  // Fetch all-time stats once on mount
+  useEffect(() => {
+    getStats()
+      .then((items) => {
+        const totalCost = items.reduce((s, i) => s + (i.cost_usd ?? 0), 0);
+        const totalTok = items.reduce(
+          (s, i) => s + (i.tokens_in ?? 0) + (i.tokens_out ?? 0),
+          0
+        );
+        setAllTimeCostUsd(totalCost);
+        setAllTimeTokens(totalTok);
+      })
+      .catch(() => {});
+  }, []);
 
   const send = useCallback(
     async (text: string) => {
@@ -50,7 +88,8 @@ export function useChat() {
         await streamMessage(
           text,
           sessionId,
-          activeModel,
+          activeModel === "auto" ? undefined : activeModel,
+          isIncognito,
           (token) => {
             setMessages((prev) =>
               prev.map((m) =>
@@ -58,14 +97,18 @@ export function useChat() {
               )
             );
           },
-          (_sid, modelUsed, costUsd) => {
+          (_sid, modelUsed, costUsd, tokensIn, tokensOut) => {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === streamingId
-                  ? { ...m, isStreaming: false, model_used: modelUsed, cost_usd: costUsd }
+                  ? { ...m, isStreaming: false, model_used: modelUsed, cost_usd: costUsd, tokens_in: tokensIn, tokens_out: tokensOut }
                   : m
               )
             );
+            setSessionCostUsd((c) => c + costUsd);
+            setSessionTokens((t) => t + tokensIn + tokensOut);
+            setAllTimeCostUsd((c) => c + costUsd);
+            setAllTimeTokens((t) => t + tokensIn + tokensOut);
             setIsLoading(false);
           },
           abortRef.current.signal
@@ -78,7 +121,7 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId, activeModel]
+    [isLoading, sessionId, activeModel, isIncognito]
   );
 
   const newChat = useCallback(() => {
@@ -87,6 +130,22 @@ export function useChat() {
     setMessages([]);
     setError(null);
     setIsLoading(false);
+    setIsReadOnly(false);
+    setIsIncognito(false);
+    setSessionCostUsd(0);
+    setSessionTokens(0);
+  }, []);
+
+  const startIncognitoChat = useCallback(() => {
+    abortRef.current?.abort();
+    setSessionId(uuidv4());
+    setMessages([]);
+    setError(null);
+    setIsLoading(false);
+    setIsReadOnly(false);
+    setIsIncognito(true);
+    setSessionCostUsd(0);
+    setSessionTokens(0);
   }, []);
 
   const loadSession = useCallback(async (sid: string) => {
@@ -95,8 +154,15 @@ export function useChat() {
     setError(null);
     try {
       const records = await getSessionMessages(sid);
+      const msgs = records.map(recordToMessage);
       setSessionId(sid);
-      setMessages(records.map(recordToMessage));
+      setMessages(msgs);
+      setIsReadOnly(true);
+      setIsIncognito(false);
+      // Compute session totals from loaded messages
+      const { cost, tokens } = sumMessages(msgs);
+      setSessionCostUsd(cost);
+      setSessionTokens(tokens);
     } catch {
       setError("Failed to load conversation");
     } finally {
@@ -106,22 +172,15 @@ export function useChat() {
 
   const retry = useCallback(
     (messageId: string) => {
-      if (isLoading) return;
-      // Find the user message that preceded this assistant message
+      if (isLoading || isReadOnly) return;
       const idx = messages.findIndex((m) => m.id === messageId);
       if (idx <= 0) return;
-      // Walk backward to find the last user message before this assistant message
       let userMsg: Message | undefined;
       for (let i = idx - 1; i >= 0; i--) {
-        if (messages[i].role === "user") {
-          userMsg = messages[i];
-          break;
-        }
+        if (messages[i].role === "user") { userMsg = messages[i]; break; }
       }
       if (!userMsg) return;
-      // Remove the assistant message being retried
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
-      // Re-send (send will add the streaming message)
       setError(null);
       setIsLoading(true);
 
@@ -136,7 +195,8 @@ export function useChat() {
       streamMessage(
         userMsg.content,
         sessionId,
-        activeModel,
+        activeModel === "auto" ? undefined : activeModel,
+        isIncognito,
         (token) => {
           setMessages((prev) =>
             prev.map((m) =>
@@ -144,14 +204,18 @@ export function useChat() {
             )
           );
         },
-        (_sid, modelUsed, costUsd) => {
+        (_sid, modelUsed, costUsd, tokensIn, tokensOut) => {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === streamingId
-                ? { ...m, isStreaming: false, model_used: modelUsed, cost_usd: costUsd }
+                ? { ...m, isStreaming: false, model_used: modelUsed, cost_usd: costUsd, tokens_in: tokensIn, tokens_out: tokensOut }
                 : m
             )
           );
+          setSessionCostUsd((c) => c + costUsd);
+          setSessionTokens((t) => t + tokensIn + tokensOut);
+          setAllTimeCostUsd((c) => c + costUsd);
+          setAllTimeTokens((t) => t + tokensIn + tokensOut);
           setIsLoading(false);
         },
         abortRef.current.signal
@@ -163,19 +227,30 @@ export function useChat() {
         setIsLoading(false);
       });
     },
-    [isLoading, messages, sessionId, activeModel]
+    [isLoading, isReadOnly, messages, sessionId, activeModel, isIncognito]
   );
+
+  const MAX_CONTEXT_TOKENS = 25_000;
+  const contextPercent = Math.min(100, Math.round((sessionTokens / MAX_CONTEXT_TOKENS) * 100));
 
   return {
     messages,
     sessionId,
     isLoading,
+    isReadOnly,
+    isIncognito,
     error,
     send,
     retry,
     newChat,
+    startIncognitoChat,
     loadSession,
     activeModel,
     setActiveModel,
+    sessionCostUsd,
+    sessionTokens,
+    allTimeCostUsd,
+    allTimeTokens,
+    contextPercent,
   };
 }

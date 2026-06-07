@@ -1,13 +1,19 @@
 "use client";
 
 import { type KeyboardEvent, useRef, useState } from "react";
+import { ModelSelector } from "./ModelSelector";
 
 interface Props {
   onSend: (text: string) => void;
+  onNewChat: () => void;
   disabled?: boolean;
+  readOnly?: boolean;
+  contextFull?: boolean;
+  model: string;
+  onModelChange: (model: string) => void;
 }
 
-export function ChatInput({ onSend, disabled }: Props) {
+export function ChatInput({ onSend, onNewChat, disabled, readOnly, contextFull, model, onModelChange }: Props) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,11 +41,71 @@ export function ChatInput({ onSend, disabled }: Props) {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   };
 
+  if (contextFull) {
+    return (
+      <div className="px-4 pb-5 pt-2">
+        <div className="max-w-3xl mx-auto">
+          <div
+            className="rounded-2xl flex items-center justify-between px-5 py-3"
+            style={{
+              background: "var(--input-bg)",
+              border: "1px solid var(--input-border)",
+              borderTop: "2px solid #ef4444",
+            }}
+          >
+            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+              <ContextFullIcon />
+              <span>Context limit reached — start a new chat to continue</span>
+            </div>
+            <button
+              onClick={onNewChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ background: "#ef4444", color: "#fff" }}
+            >
+              <PlusIcon size={14} />
+              New chat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (readOnly) {
+    return (
+      <div className="px-4 pb-5 pt-2">
+        <div className="max-w-3xl mx-auto">
+          <div
+            className="rounded-2xl flex items-center justify-between px-5 py-3"
+            style={{
+              background: "var(--input-bg)",
+              border: "1px solid var(--input-border)",
+              borderTop: "2px solid var(--accent)",
+            }}
+          >
+            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+              <LockIcon />
+              <span>Past conversation — read only</span>
+            </div>
+            <button
+              onClick={onNewChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              <PlusIcon size={14} />
+              New chat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 pb-5 pt-2">
       <div className="max-w-3xl mx-auto">
         <div
-          className="rounded-2xl overflow-hidden"
+          className="rounded-2xl"
           style={{
             background: "var(--input-bg)",
             border: "1px solid var(--input-border)",
@@ -73,9 +139,9 @@ export function ChatInput({ onSend, disabled }: Props) {
               <PlusIcon />
             </button>
 
-            {/* Right: model selector + mic + voice mode OR send */}
+            {/* Right: model selector + mic + send */}
             <div className="flex items-center gap-2">
-              <ModelSelector />
+              <ModelSelector value={model} onChange={onModelChange} />
               <button
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: "var(--text-muted)" }}
@@ -115,27 +181,30 @@ export function ChatInput({ onSend, disabled }: Props) {
   );
 }
 
-/* ── Sub-components ───────────────────────────────────────────────────────── */
+/* ── Icons ────────────────────────────────────────────────────────────────── */
 
-function ModelSelector() {
+function LockIcon() {
   return (
-    <button
-      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
-      style={{ color: "var(--text-muted)" }}
-      title="Model selector"
-    >
-      <span className="font-medium" style={{ color: "var(--text)" }}>SelfGPT</span>
-      <span>Auto</span>
-      <ChevronDownIcon />
-    </button>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
   );
 }
 
-/* ── Icons ────────────────────────────────────────────────────────────────── */
-
-function PlusIcon() {
+function ContextFullIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
+function PlusIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
@@ -160,14 +229,6 @@ function VoiceModeIcon() {
       <line x1="12" y1="3" x2="12" y2="21" />
       <line x1="16" y1="5" x2="16" y2="19" />
       <line x1="20" y1="8" x2="20" y2="16" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }

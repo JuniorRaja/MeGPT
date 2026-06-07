@@ -1,6 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { ModelSelector } from "./ModelSelector";
 
 const PROMPT_CHIPS = [
   { icon: "</>", label: "Code" },
@@ -10,26 +11,46 @@ const PROMPT_CHIPS = [
   { icon: "💬", label: "Ask anything" },
 ];
 
+const VISITOR_NAMES = ["visitor", "stranger", "friend", "curious one", "wanderer"];
+
+function getDynamicGreeting(): string {
+  const now = new Date();
+  const h = now.getHours();
+  const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+  const name = VISITOR_NAMES[Math.floor(Math.random() * VISITOR_NAMES.length)];
+  const pool: string[] = [];
+
+  if (h < 5) {
+    pool.push("Hello, night owl", `Evening, ${name}`, "Still up?");
+  } else if (h < 12) {
+    pool.push("Good morning", `Good morning, ${name}`);
+  } else if (h < 17) {
+    pool.push("Good afternoon", `Afternoon, ${name}`);
+  } else if (h < 21) {
+    pool.push("Good evening", `Evening, ${name}`, "What's on your mind tonight?");
+  } else {
+    pool.push("Good evening, night owl", `Evening, ${name}`);
+  }
+
+  pool.push(`Happy ${day}!`, `Happy ${day}, ${name}`);
+  pool.push("How's it going?", "Hey there", `Hey there, ${name}`, `Back at it, ${name}`);
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 interface Props {
   onChipClick: (text: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
 }
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 5) return "Hello, night owl";
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  if (hour < 21) return "Good evening";
-  return "Hello there";
-}
-
-export function WelcomeScreen({ onChipClick }: Props) {
-  const [greeting, setGreeting] = useState("Hello");
+export function WelcomeScreen({ onChipClick, model, onModelChange }: Props) {
+  const [greeting, setGreeting] = useState("");
   const [inputValue, setInputValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setGreeting(getGreeting());
+    setGreeting(getDynamicGreeting());
   }, []);
 
   const chipQuestions: Record<string, string> = {
@@ -67,17 +88,21 @@ export function WelcomeScreen({ onChipClick }: Props) {
       <div className="flex items-center gap-3 mb-8">
         <SparkleIcon />
         <h1
-          className="text-4xl md:text-5xl font-light tracking-tight"
-          style={{ color: "var(--text)", fontFamily: "var(--font-heading)" }}
+          className="text-4xl md:text-5xl font-light tracking-tight transition-opacity duration-300"
+          style={{
+            color: "var(--text)",
+            fontFamily: "var(--font-heading)",
+            opacity: greeting ? 1 : 0,
+          }}
         >
           {greeting}
         </h1>
       </div>
 
-      {/* Input box — Claude style */}
+      {/* Input box */}
       <div className="w-full max-w-2xl">
         <div
-          className="rounded-2xl overflow-hidden"
+          className="rounded-2xl"
           style={{
             background: "var(--input-bg)",
             border: "1px solid var(--input-border)",
@@ -99,7 +124,6 @@ export function WelcomeScreen({ onChipClick }: Props) {
           </div>
 
           <div className="flex items-center justify-between px-5 pb-3 pt-1">
-            {/* Left: + button */}
             <button
               className="w-7 h-7 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
               style={{ color: "var(--text-muted)" }}
@@ -108,9 +132,8 @@ export function WelcomeScreen({ onChipClick }: Props) {
               <PlusIcon />
             </button>
 
-            {/* Right: model selector + mic + voice mode OR send */}
             <div className="flex items-center gap-2">
-              <ModelSelector />
+              <ModelSelector value={model} onChange={onModelChange} />
               <button
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: "var(--text-muted)" }}
@@ -171,22 +194,6 @@ export function WelcomeScreen({ onChipClick }: Props) {
         ))}
       </div>
     </div>
-  );
-}
-
-/* ── Sub-components ───────────────────────────────────────────────────────── */
-
-function ModelSelector() {
-  return (
-    <button
-      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
-      style={{ color: "var(--text-muted)" }}
-      title="Model selector"
-    >
-      <span className="font-medium" style={{ color: "var(--text)" }}>SelfGPT</span>
-      <span>Auto</span>
-      <ChevronDownIcon />
-    </button>
   );
 }
 
@@ -252,14 +259,6 @@ function VoiceModeIcon() {
       <line x1="12" y1="3" x2="12" y2="21" />
       <line x1="16" y1="5" x2="16" y2="19" />
       <line x1="20" y1="8" x2="20" y2="16" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }

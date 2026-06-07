@@ -1,4 +1,4 @@
-import type { ChatResponse, HealthResponse, MessageRecord, SessionRecord } from "./types";
+import type { ChatResponse, HealthResponse, MessageRecord, SessionRecord, StatItem } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -32,8 +32,9 @@ export async function streamMessage(
   message: string,
   sessionId: string,
   model: string | undefined,
+  incognito: boolean,
   onToken: (token: string) => void,
-  onDone: (sessionId: string, modelUsed: string, costUsd: number) => void,
+  onDone: (sessionId: string, modelUsed: string, costUsd: number, tokensIn: number, tokensOut: number) => void,
   signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(`${API_URL}/chat/stream`, {
@@ -44,6 +45,7 @@ export async function streamMessage(
       session_id: sessionId,
       model,
       title: message.slice(0, 60),
+      incognito,
     }),
     signal,
   });
@@ -68,7 +70,15 @@ export async function streamMessage(
       try {
         const data = JSON.parse(line.slice(6));
         if (data.token) onToken(data.token);
-        if (data.done) onDone(data.session_id, data.model_used ?? "", data.cost_usd ?? 0);
+        if (data.done) {
+          onDone(
+            data.session_id,
+            data.model_used ?? "",
+            data.cost_usd ?? 0,
+            data.tokens_in ?? 0,
+            data.tokens_out ?? 0
+          );
+        }
         if (data.error) throw new Error(data.error);
       } catch {
         // skip malformed frames
@@ -87,6 +97,11 @@ export async function getSessionMessages(sessionId: string): Promise<MessageReco
     `/sessions/${sessionId}/messages`
   );
   return data.messages ?? [];
+}
+
+export async function getStats(): Promise<StatItem[]> {
+  const data = await apiFetch<{ items: StatItem[] }>("/sessions/stats");
+  return data.items ?? [];
 }
 
 export async function submitFeedback(

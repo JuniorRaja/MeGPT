@@ -1,30 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getSessions } from "@/lib/api";
+import { useState } from "react";
 import type { SessionRecord } from "@/lib/types";
 
 interface Props {
   currentSessionId: string;
+  sessions: SessionRecord[];
+  sessionsLoading: boolean;
   onNewChat: () => void;
   onLoadSession: (sessionId: string) => void;
+  allTimeCostUsd: number;
+  allTimeTokens: number;
 }
 
 function truncate(str: string, len: number): string {
   return str.length > len ? str.slice(0, len).trimEnd() + "…" : str;
 }
 
-export function Sidebar({ currentSessionId, onNewChat, onLoadSession }: Props) {
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+const INR_PER_USD = 83.5;
 
-  useEffect(() => {
-    getSessions()
-      .then(setSessions)
-      .catch(() => setSessions([]))
-      .finally(() => setLoading(false));
-  }, [currentSessionId]);
+function fmtCost(usd: number): string {
+  const inr = usd * INR_PER_USD;
+  return inr < 0.01 ? "₹0.00" : `₹${inr.toFixed(2)}`;
+}
+
+export function Sidebar({ currentSessionId, sessions, sessionsLoading, onNewChat, onLoadSession, allTimeCostUsd, allTimeTokens }: Props) {
+  const [collapsed, setCollapsed] = useState(false);
 
   if (collapsed) {
     return (
@@ -128,7 +129,7 @@ export function Sidebar({ currentSessionId, onNewChat, onLoadSession }: Props) {
 
       {/* Chat History */}
       <div className="flex-1 overflow-y-auto px-3 pb-2 mt-1">
-        {loading ? (
+        {sessionsLoading ? (
           <div className="px-3 py-4">
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               Loading…
@@ -173,23 +174,36 @@ export function Sidebar({ currentSessionId, onNewChat, onLoadSession }: Props) {
 
       {/* Footer */}
       <div
-        className="px-3 py-3 border-t flex items-center gap-3"
+        className="px-3 py-3 border-t"
         style={{ borderColor: "var(--border)" }}
       >
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-          style={{ background: "var(--text)", color: "var(--bg)" }}
-        >
-          P
+        <div className="flex items-center gap-3 mb-2">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+            style={{ background: "var(--text)", color: "var(--bg)" }}
+          >
+            P
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
+              Prasanna
+            </p>
+            <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+              Ask me anything
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
-            Prasanna
-          </p>
-          <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
-            Ask me anything
-          </p>
-        </div>
+        {(allTimeCostUsd > 0 || allTimeTokens > 0) && (
+          <div
+            className="text-[10px] px-1 flex items-center gap-1.5"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <span>All-time:</span>
+            <span>{fmtCost(allTimeCostUsd)}</span>
+            <span>·</span>
+            <span>{allTimeTokens.toLocaleString()} tok</span>
+          </div>
+        )}
       </div>
     </aside>
   );

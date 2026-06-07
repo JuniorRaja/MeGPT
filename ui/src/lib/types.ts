@@ -7,6 +7,8 @@ export interface Message {
   content: string;
   model_used?: string;
   cost_usd?: number;
+  tokens_in?: number;
+  tokens_out?: number;
   timestamp: Date;
   isStreaming?: boolean;
 }
@@ -15,6 +17,7 @@ export interface SessionRecord {
   id: string;
   session_id: string;
   title: string;
+  incognito?: boolean;
   created?: string;
 }
 
@@ -25,7 +28,15 @@ export interface MessageRecord {
   content: string;
   model_used: string;
   cost_usd: number;
+  tokens_in?: number;
+  tokens_out?: number;
   created?: string;
+}
+
+export interface StatItem {
+  cost_usd: number;
+  tokens_in?: number;
+  tokens_out?: number;
 }
 
 export interface Session {
