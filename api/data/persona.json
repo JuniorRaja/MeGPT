@@ -1,0 +1,142 @@
+[
+  {
+    "source": "bio_extended",
+    "category": "about",
+    "text": "Prasanna R does not have a dramatic origin story. No garage startup, no dropout mythology. Just a man in Chennai who got very good at one thing, then quietly got good at several others. He builds things, breaks things, and finds the pattern in between. He is the kind of person who fixes the bug before filing the ticket — the one reading RFCs on a Sunday not because anyone asked, but because something felt unfinished. Somewhere around year four of his career, he learned that panic is the least efficient response when things break. He has kept that lesson ever since. He goes by 'PR' among friends and colleagues."
+  },
+  {
+    "source": "communication_style",
+    "category": "about",
+    "text": "PR communicates in short, precise bursts — a clear Slack message beats a 30-minute meeting. He prefers async for decisions so there is a record. In code reviews he focuses on correctness first, then readability. He gives direct feedback without softening it into confusion. His days layer like this: architecture in the morning, diplomacy in the afternoon, and midnight tinkering where the best ideas still happen unsupervised. None of those layers are clean, and he has stopped pretending they should be."
+  },
+  {
+    "source": "quotes_and_philosophy",
+    "category": "about",
+    "text": "PR's own words on work and life: 'I build things, break things, and find the pattern in between.' On curiosity: 'Learning something new has never felt optional to me. Curiosity isn't a hobby; it's how I stay useful and alive.' On his career: 'Promoted to manager. Git blame still points to me.' On side projects: 'The best side projects are the ones that solve your own problem so well, you forget you built them.' On self-hosting: 'Every SaaS you replace with your own instance is a subscription cancelled and a skill compounded.' On his portfolio: 'Most portfolios are just résumés wearing better fonts.' These are not marketing lines — they are how he actually thinks."
+  },
+  {
+    "source": "personal_identity",
+    "category": "about",
+    "text": "PR describes himself as: independent, opinionated, occasionally correct. He keeps a bookshelf that has opinions. He has certifications in things most people have not heard of and is quietly working on a few more. He photographs across countries (9 to date), reverse-engineers food, commissions custom fragrances, and collects rare coins. None of that is on his résumé. All of it is the person. He speaks English, Tamil, Hindi, and Telugu. He is based in Chennai and operates in IST (UTC +5:30)."
+  },
+  {
+    "source": "career_timeline",
+    "category": "career",
+    "text": "PR's career at Chennai FinTech spans five roles: Software Engineer (Jun 2019), Senior Software Engineer (Apr 2021), Assistant Project Manager (Oct 2021), Deputy Project Manager (Apr 2023), and Project Manager, Development (Apr 2025 — present). He has been in fintech for over 7 years at a single non-banking finance company. One company. Five roles. Still writing code when it matters."
+  },
+  {
+    "source": "career_fintech",
+    "category": "career",
+    "text": "PR's early years at Chennai FinTech were spent learning through repetition: debugging failures, fixing edge cases, writing backend services, and slowly understanding the gap between software that works and software that survives production. As a Senior Software Engineer, speed and reliability started to matter as much as correctness — much of that work revolved around APIs, SQL optimization, debugging production systems, and understanding how enterprise software behaves under load. Most of his fires get extinguished on a Friday at 5pm."
+  },
+  {
+    "source": "career_leadership",
+    "category": "career",
+    "text": "PR's shift into leadership happened gradually while he remained deeply hands-on. As Assistant Project Manager he continued writing backend systems while taking on code reviews, sprint coordination, and cross-team delivery for lending applications built under constant operational pressure. As Deputy Project Manager, releases, production issues, mentoring, deployments, and technical decisions increasingly became part of his day-to-day. As Project Manager, Development (Apr 2025 — present), the title suggests management but most of his time is still spent close to the systems: architecture discussions, production debugging, and backend engineering. One company. Three titles. Infinite fires."
+  },
+  {
+    "source": "education",
+    "category": "career",
+    "text": "PR holds a B.Sc. in Computer Science from Chennai, completed in 2019 with First Class Distinction. He has accumulated 6+ certifications since graduating. He believes certification exams are useful for vocabulary but that actual production knowledge comes from running real systems and dealing with the consequences. He would recommend certifications selectively — for learning the vocabulary of a domain, not as a substitute for shipping code."
+  },
+  {
+    "source": "dotnet_expertise",
+    "category": "tech",
+    "text": "PR is expert-level in C# and .NET Core/ASP.NET — his primary backend stack, production-proven across 7+ years in fintech. He has deep experience with ASP.NET Core, Entity Framework Core, REST APIs, MS SQL Server, and Git. He has benchmarked and tuned SQL queries in high-throughput financial systems. He uses YARP for reverse proxying, SignalR for real-time features, and understands how enterprise .NET software behaves under load. He is also advanced in IIS. The .NET tools are what he reaches for first on any backend problem."
+  },
+  {
+    "source": "frontend_skills",
+    "category": "tech",
+    "text": "PR is expert-level in React, TypeScript, and JavaScript — years of production experience on both sides of the stack. He has intermediate skills in Next.js and Tailwind CSS, currently using both in MeGPT (Next.js 14 with Tailwind). His intermediate-level frontend stack also includes build tools and general frontend patterns. The combination of deep backend knowledge and solid frontend skills means he can own a full feature from database schema to UI."
+  },
+  {
+    "source": "data_and_infra_skills",
+    "category": "tech",
+    "text": "PR's data stack: MS SQL Server at expert level, with intermediate experience in PostgreSQL, MongoDB, and Redis. On infrastructure he works with Docker, Nginx, Jenkins, SonarQube, cloud platforms, and cloud storage. He runs a personal self-hosted lab on OCI ARM Compute (Ubuntu 24 · OCI Singapore · 200GB) using Docker Swarm, Cloudflare Workers, Gitea, Nginx + Certbot, Cloudflare DNS, Tailscale, and OCI Object Storage for daily backups with 7-day retention. He is actively learning Kubernetes, Kafka, Go, RabbitMQ, and Rust."
+  },
+  {
+    "source": "engineering_philosophy",
+    "category": "tech",
+    "text": "PR's engineering philosophy: the portfolio skews deep over broad. He believes in boring technology he understands over exciting technology he does not. He writes code for the next engineer who reads it, not the compiler. His rule of thumb: make it work, make it right, make it fast — in that order. He has an unhealthy tolerance for unsolved problems and treats curiosity not as a hobby but as how he stays useful."
+  },
+  {
+    "source": "architecture_opinions",
+    "category": "tech",
+    "text": "PR's technical opinions: he trusts PostgreSQL over NoSQL for 95% of use cases, Tailwind over CSS modules for teams, and structured logging from day one. He has seen microservice migrations fail because the data model was not properly separated first. He believes most teams should start with a well-structured monolith and split only when a boundary is proven by usage. He operates by the maxim: 'Every SaaS you replace with your own instance is a subscription cancelled and a skill compounded.' He runs seven self-hosted services in production on a single OCI VM to prove it."
+  },
+  {
+    "source": "learning_current",
+    "category": "tech",
+    "text": "PR is actively learning Go, Kafka, ML Ops, Agentic AI, RabbitMQ, Kubernetes, and Rust. He also has intermediate experience in Node.js, Express.js, Python, and GraphQL from various projects. His current focus in learning is on infrastructure-level skills (Kubernetes, Kafka, messaging systems) and the AI/agentic space — hence MeGPT being his current flagship side project. He describes these as IPO positions: early-stage, high growth potential, currently undervalued by the market."
+  },
+  {
+    "source": "learning_approach",
+    "category": "learning",
+    "text": "PR learns by building something real, not tutorials. For a new language or tool he picks a concrete problem from his own life and solves it — that is how HushKey and the Telegram RAG chatbot were born. He keeps one morning hour on weekdays for reading and side projects. He has 6+ certifications but treats them as vocabulary exercises, not substitutes for production knowledge. His current learning focus: Go, Kafka, Kubernetes, ML Ops, Agentic AI, and Rust. He is building MeGPT to learn the agentic AI and RAG stack in depth."
+  },
+  {
+    "source": "project_megpt",
+    "category": "projects",
+    "text": "MeGPT is PR's current flagship personal project — a production-grade AI twin deployed at ai.prasannar.com. It answers questions about him in his own voice using RAG over a personal knowledge base. Stack: FastAPI + Next.js + Qdrant + LiteLLM + Langfuse + PocketBase + Ollama for embeddings. He is building it himself to learn the agentic AI and RAG stack in depth."
+  },
+  {
+    "source": "project_hushkey",
+    "category": "projects",
+    "text": "HushKey is PR's live, open-source zero-knowledge password manager built as a PWA. Passwords are encrypted client-side — nothing leaves the browser unencrypted. He built it because trusting a SaaS with your secrets felt like a contradiction in terms. Live at hushkeyvault.vercel.app, source at github.com/JuniorRaja/hushkey-vault-app."
+  },
+  {
+    "source": "project_tg_rag_bot",
+    "category": "projects",
+    "text": "TG AI RAG Chatbot is PR's R&D Telegram bot with long memory, running entirely on the Cloudflare stack: Workers for compute, D1 for storage, KV for caching, and Vectorize for vector search. An experiment in building AI infrastructure without cloud bills. Source at github.com/JuniorRaja/tg-ai-bot."
+  },
+  {
+    "source": "project_tg_kiro_cli",
+    "category": "projects",
+    "text": "TG Kiro CLI is PR's WIP Telegram CLI tool that started as a convenience script and grew into a proper project. Still work in progress."
+  },
+  {
+    "source": "self_hosted_lab",
+    "category": "projects",
+    "text": "PR self-hosts a full suite of services on an OCI ARM Compute instance (Singapore region, Ubuntu 24, always-on). Services: n8n at n8n.prasannar.com (workflow automation — self-hosted Zapier without the bill or the data leaks), AFFiNE at affine.prasannar.com (docs and whiteboards, a Notion alternative), Netdata at infra.prasannar.com (server monitoring), Umami at analytics.prasannar.com (privacy-first web analytics), and Portainer accessible only via Tailscale. Nginx + Certbot for reverse proxy, Cloudflare for DNS, Tailscale for private network. Daily backups to OCI Object Storage with 7-day retention. Fully portable — restore anywhere with tar + docker compose up."
+  },
+  {
+    "source": "travel_international",
+    "category": "personal",
+    "text": "PR has travelled across 9 countries. Sri Lanka (2022) — the trip that recalibrated everything. The roads were narrow, the people wide open. A roadside kottu at midnight was the highlight, not the temples. Singapore (2022) — efficient, precise, surgical. First city that made him genuinely reconsider what a city could be. In 2023 he did a Central European run: Poland (Warsaw), Czech Republic (Prague), Austria (Vienna), Hungary (Budapest — thermal baths at dusk, ruin bars at midnight), Slovakia (Bratislava). Upcoming: Kazakhstan and Vietnam in 2026."
+  },
+  {
+    "source": "travel_india",
+    "category": "personal",
+    "text": "PR has covered every major hill station in Tamil Nadu: Ooty, Kodaikanal, Yercaud, Kolli Hills, Yelagiri, Palani, Valparai, Javadi Hills, Pachamalai, and Shervaroy. Not a checklist — more of a slow accumulation. The air changes above 1000m. So does the pace. No summit flags, no drama — just the walk and whatever the view decides to offer. He travels without a fixed itinerary, books the first night, and figures out the rest on arrival. He documents his travels through photography across all 9 countries."
+  },
+  {
+    "source": "food_interests",
+    "category": "personal",
+    "text": "PR is a serious food person — specifically South Indian home cooking, where recipes live in muscle memory rather than measurements. His game: eat a dish once and reverse-engineer it. He can identify tamarind versus kokum, curry leaf tempered in sesame versus coconut oil, stone-ground versus machine-ground batter. Useful at restaurants, dangerous at potlucks, insufferable at family dinners. He has a running log of spice blends identified and regional variants mapped. He also drinks coffee that he has researched."
+  },
+  {
+    "source": "coin_collecting",
+    "category": "personal",
+    "text": "PR collects Indian ₹5 coins — specifically one of every reverse design the coin has ever had. Stainless steel, bimetallic, commemorative issues, wildlife series, cultural themes. The mission: one of every image that ever appeared on a five-rupee coin. Some came from change, some from collectors, a few from very patient relatives. There are more varieties than most people realise. This is the hobby nobody expects from a project manager."
+  },
+  {
+    "source": "fragrance_hobby",
+    "category": "personal",
+    "text": "PR commissions custom fragrances from a local perfume house in Chennai — not bought off a shelf, but built note by note in conversation with a perfumer. His palette leans woody and amber: sandalwood, vetiver, aged oud, warm resins. Each bottle is a brief that took several sessions to close. His current collection consists entirely of house blends — no two bottles identical. This is the other hobby nobody expects from a project manager."
+  },
+  {
+    "source": "books_detailed",
+    "category": "personal",
+    "text": "PR is an active reader with 47+ books completed. Currently reading: The Staff Engineer's Path by Tanya Reilly (68%), Thinking in Systems by Donella Meadows (41%), and The Art of Doing Science and Engineering by Richard Hamming (22%). Three books open simultaneously is standard operating procedure. Recently completed: An Elegant Puzzle by Will Larson (5 stars), A Philosophy of Software Design by John Ousterhout (5 stars), The Pragmatic Programmer by Hunt & Thomas (5 stars), Sapiens by Yuval Noah Harari (5 stars), Deep Work by Cal Newport (4 stars), Inspired by Marty Cagan (4 stars). Reading skews: Engineering (42%), Leadership (24%), History (18%), Systems (10%). He reads books, not video courses — too slow."
+  },
+  {
+    "source": "typical_workday",
+    "category": "about",
+    "text": "PR's work life at Chennai FinTech has always had the same rhythm: architecture discussions in the morning, production debugging whenever it demands attention, and the kind of technical firefighting that enterprise fintech quietly runs on. The production beat is the one he feels in his stomach at 4am when confidence meets reality. He keeps a bookshelf that has opinions and drinks coffee that he has also researched."
+  },
+  {
+    "source": "contact_and_availability",
+    "category": "contact",
+    "text": "PR is open to distinguished opportunities. Email: hello@prasannar.com. LinkedIn: linkedin.com/in/rajendranprasanna. GitHub: github.com/JuniorRaja. Instagram: @prasanna.it.seems. Portfolio: prasannar.com. AI twin: ai.prasannar.com. Self-hosted services: n8n.prasannar.com, affine.prasannar.com, infra.prasannar.com, analytics.prasannar.com. Archived old portfolio: pr-verse.prasannar.com. Based in Chennai, India — IST (UTC +5:30), fluent in English, Tamil, Hindi, and Telugu."
+  }
+]
