@@ -4,6 +4,9 @@ from typing import Any
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
     PointStruct,
     VectorParams,
 )
@@ -55,6 +58,44 @@ class QdrantService:
             for hit in results
             if hit.payload
         ]
+
+    async def search_with_scores(
+        self,
+        query_vector: list[float],
+        limit: int = 15,
+        category_filter: str | None = None,
+    ) -> list[tuple[str, float, dict]]:
+        query_filter = None
+        if category_filter is not None and category_filter != "general":
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="category",
+                        match=MatchValue(value=category_filter),
+                    )
+                ]
+            )
+        results = await self.client.search(
+            collection_name=self.collection,
+            query_vector=query_vector,
+            limit=limit,
+            with_payload=True,
+            query_filter=query_filter,
+        )
+        hits = [
+            (
+                hit.payload.get("text", ""),
+                hit.score,
+                {
+                    "source": hit.payload.get("source", ""),
+                    "category": hit.payload.get("category", ""),
+                },
+            )
+            for hit in results
+            if hit.payload and hit.payload.get("text", "")
+        ]
+        hits.sort(key=lambda t: t[1], reverse=True)
+        return hits
 
     async def count(self) -> int:
         info = await self.client.get_collection(self.collection)
