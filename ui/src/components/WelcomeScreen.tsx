@@ -40,11 +40,12 @@ function getDynamicGreeting(): string {
 
 interface Props {
   onChipClick: (text: string) => void;
+  onVoiceClick?: () => void;
   model: string;
   onModelChange: (model: string) => void;
 }
 
-export function WelcomeScreen({ onChipClick, model, onModelChange }: Props) {
+export function WelcomeScreen({ onChipClick, onVoiceClick, model, onModelChange }: Props) {
   const [greeting, setGreeting] = useState("");
   const [inputValue, setInputValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -135,6 +136,7 @@ export function WelcomeScreen({ onChipClick, model, onModelChange }: Props) {
             <div className="flex items-center gap-2">
               <ModelSelector value={model} onChange={onModelChange} />
               <button
+                onClick={onVoiceClick}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: "var(--text-muted)" }}
                 title="Voice input"
@@ -151,6 +153,7 @@ export function WelcomeScreen({ onChipClick, model, onModelChange }: Props) {
                 </button>
               ) : (
                 <button
+                  onClick={onVoiceClick}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                   style={{ color: "var(--text-muted)" }}
                   title="Voice mode"

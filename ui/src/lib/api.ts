@@ -117,3 +117,23 @@ export async function submitFeedback(
 export async function getHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>("/health");
 }
+
+export async function transcribeAudio(blob: Blob): Promise<string> {
+  const ext = blob.type.includes("webm") ? "webm" : blob.type.includes("mp4") ? "mp4" : "wav";
+  const form = new FormData();
+  form.append("file", blob, `recording.${ext}`);
+  const res = await fetch(`${API_URL}/audio/transcribe`, { method: "POST", body: form });
+  if (!res.ok) throw new Error(`Transcribe error ${res.status}`);
+  const data = await res.json();
+  return data.transcript ?? "";
+}
+
+export async function synthesizeSpeech(text: string): Promise<Blob> {
+  const res = await fetch(`${API_URL}/audio/synthesize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error(`Synthesize error ${res.status}`);
+  return res.blob();
+}

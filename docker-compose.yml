@@ -33,35 +33,13 @@ services:
       - pocketbase_data:/pb_data
     restart: unless-stopped
 
-  api:
-    build: ./api
-    container_name: megpt_api
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
+    container_name: megpt_kokoro
     ports:
-      - "127.0.0.1:8000:8000"
-    depends_on:
-      qdrant:
-        condition: service_healthy
-      litellm:
-        condition: service_started
-      pocketbase:
-        condition: service_started
-    env_file: .env
-    environment:
-      - QDRANT_URL=http://qdrant:6333
-      - LITELLM_URL=http://litellm:4000
-      - POCKETBASE_URL=http://pocketbase:8090
-    restart: unless-stopped
-
-  ui:
-    build:
-      context: ./ui
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-    container_name: megpt_ui
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      - api
+      - "8880:8880"
+    volumes:
+      - ./voices/v1_0:/app/api/src/voices/v1_0
     restart: unless-stopped
 
 volumes:

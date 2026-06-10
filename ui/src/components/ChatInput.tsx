@@ -6,6 +6,7 @@ import { ModelSelector } from "./ModelSelector";
 interface Props {
   onSend: (text: string) => void;
   onNewChat: () => void;
+  onVoiceClick?: () => void;
   disabled?: boolean;
   readOnly?: boolean;
   contextFull?: boolean;
@@ -13,7 +14,7 @@ interface Props {
   onModelChange: (model: string) => void;
 }
 
-export function ChatInput({ onSend, onNewChat, disabled, readOnly, contextFull, model, onModelChange }: Props) {
+export function ChatInput({ onSend, onNewChat, onVoiceClick, disabled, readOnly, contextFull, model, onModelChange }: Props) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -143,6 +144,7 @@ export function ChatInput({ onSend, onNewChat, disabled, readOnly, contextFull, 
             <div className="flex items-center gap-2">
               <ModelSelector value={model} onChange={onModelChange} />
               <button
+                onClick={onVoiceClick}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: "var(--text-muted)" }}
                 title="Voice input"
@@ -166,6 +168,7 @@ export function ChatInput({ onSend, onNewChat, disabled, readOnly, contextFull, 
                 </button>
               ) : (
                 <button
+                  onClick={onVoiceClick}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
                   style={{ color: "var(--text-muted)" }}
                   title="Voice mode"

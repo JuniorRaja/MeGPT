@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     pocketbase_token: str = ""
 
+    groq_api_key: str = ""
+    kokoro_url: str = "http://localhost:8880"
+    tts_voice: str = "af_heart"
+
     qdrant_collection: str = "megpt_knowledge"
     embed_dim: int = 768
 

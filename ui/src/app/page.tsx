@@ -5,10 +5,12 @@ import { ChatInput } from "@/components/ChatInput";
 import { ChatWindow } from "@/components/ChatWindow";
 import { LandingModal } from "@/components/LandingModal";
 import { Sidebar } from "@/components/Sidebar";
+import { VoiceChatModal } from "@/components/VoiceChatModal";
 import { getSessions } from "@/lib/api";
 import type { SessionRecord } from "@/lib/types";
 import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/hooks/useTheme";
+import { useVoiceChat } from "@/hooks/useVoiceChat";
 
 const INR_PER_USD = 83.5;
 
@@ -39,6 +41,22 @@ export default function HomePage() {
     contextPercent,
   } = useChat();
   const { theme, setTheme, mode, toggleMode } = useTheme();
+
+  // Voice chat — pipe streaming text and latest assistant text into voice hook
+  const streamingText = messages.findLast((m) => m.role === "assistant" && m.isStreaming)?.content ?? "";
+  const assistantText = messages.findLast((m) => m.role === "assistant")?.content ?? "";
+
+  const {
+    orbState,
+    analyserNode,
+    liveTranscript,
+    isVoiceActive,
+    isRecording,
+    openVoice,
+    closeVoice,
+    startListening,
+    stopListening,
+  } = useVoiceChat(send, streamingText, isLoading);
 
   const [showModal, setShowModal] = useState(true);
   // Sessions list owned here so Sidebar remounts don't cause fetch-flicker
@@ -87,6 +105,20 @@ export default function HomePage() {
   return (
     <div className="flex h-full overflow-x-hidden" style={{ background: "var(--bg)" }}>
       {showModal && <LandingModal onStart={() => setShowModal(false)} />}
+
+      {isVoiceActive && (
+        <VoiceChatModal
+          orbState={orbState}
+          analyserNode={analyserNode}
+          liveTranscript={liveTranscript}
+          assistantText={assistantText}
+          isRecording={isRecording}
+          onStartListening={startListening}
+          onStopListening={stopListening}
+          onClose={closeVoice}
+          theme={theme}
+        />
+      )}
 
       {/* Mobile backdrop */}
       {sidebarOpen && (
@@ -193,6 +225,7 @@ export default function HomePage() {
           messages={messages}
           isLoading={isLoading}
           onChipClick={send}
+          onVoiceClick={openVoice}
           onFeedback={handleFeedback}
           onRetry={isReadOnly ? undefined : retry}
           onNewChat={newChat}
@@ -204,6 +237,7 @@ export default function HomePage() {
           <ChatInput
             onSend={send}
             onNewChat={newChat}
+            onVoiceClick={openVoice}
             disabled={isLoading}
             readOnly={isReadOnly}
             contextFull={!isReadOnly && contextPercent >= 100}

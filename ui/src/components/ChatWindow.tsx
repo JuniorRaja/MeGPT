@@ -11,6 +11,7 @@ interface Props {
   messages: Message[];
   isLoading: boolean;
   onChipClick: (text: string) => void;
+  onVoiceClick?: () => void;
   onFeedback?: (messageId: string, rating: 1 | -1) => void;
   onRetry?: (messageId: string) => void;
   onNewChat: () => void;
@@ -18,7 +19,7 @@ interface Props {
   onModelChange: (model: string) => void;
 }
 
-export function ChatWindow({ messages, isLoading, onChipClick, onFeedback, onRetry, onNewChat, model, onModelChange }: Props) {
+export function ChatWindow({ messages, isLoading, onChipClick, onVoiceClick, onFeedback, onRetry, onNewChat, model, onModelChange }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export function ChatWindow({ messages, isLoading, onChipClick, onFeedback, onRet
   }, [messages, isLoading]);
 
   if (messages.length === 0 && !isLoading) {
-    return <WelcomeScreen onChipClick={onChipClick} model={model} onModelChange={onModelChange} />;
+    return <WelcomeScreen onChipClick={onChipClick} onVoiceClick={onVoiceClick} model={model} onModelChange={onModelChange} />;
   }
 
   // Compute where context milestones fall in the message stream
