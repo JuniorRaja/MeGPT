@@ -1,13 +1,14 @@
 "use client";
 
-import type { OrbState } from "@/hooks/useVoiceChat";
+import { useEffect, useRef } from "react";
+import type { OrbState, VoiceMessage } from "@/hooks/useVoiceChat";
 import { VoiceOrb } from "./VoiceOrb";
 
 interface Props {
   orbState: OrbState;
   analyserNode: AnalyserNode | null;
-  liveTranscript: string;
-  assistantText: string;
+  voiceMessages: VoiceMessage[];
+  statusLabel: string;
   isRecording: boolean;
   onStartListening: () => void;
   onStopListening: () => void;
@@ -18,120 +19,201 @@ interface Props {
 export function VoiceChatModal({
   orbState,
   analyserNode,
-  liveTranscript,
-  assistantText,
+  voiceMessages,
+  statusLabel,
   isRecording,
   onStartListening,
   onStopListening,
   onClose,
   theme,
 }: Props) {
-  void theme; // theme drives CSS vars globally; no explicit use needed here
+  void theme;
 
-  const handleMicToggle = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [voiceMessages]);
+
+  const handleMicClick = () => {
     if (isRecording) {
       onStopListening();
-    } else if (orbState === "idle") {
+    } else {
       onStartListening();
     }
   };
 
-  const stateLabel: Record<OrbState, string> = {
-    idle: "Tap to speak",
-    listening: "Listening…",
-    processing: "Thinking…",
-    speaking: "Speaking…",
-  };
+  const orbSize = voiceMessages.length > 0 ? 160 : 220;
+  const micDisabled = orbState === "processing";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "rgba(6,6,10,0.88)", backdropFilter: "blur(16px)" }}
     >
-      {/* Close button */}
+      {/* Close */}
       <button
         onClick={onClose}
         className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
-        style={{ background: "var(--hover-bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
-        aria-label="Close voice mode"
+        style={{
+          background: "rgba(255,255,255,0.07)",
+          color: "rgba(255,255,255,0.45)",
+          border: "1px solid rgba(255,255,255,0.1)",
+        }}
+        aria-label="Close voice chat"
       >
         <CloseIcon />
       </button>
 
-      {/* Orb */}
-      <div className="flex flex-col items-center gap-6 w-full max-w-sm px-6">
-        <div style={{ filter: "drop-shadow(0 0 24px var(--accent))" }}>
-          <VoiceOrb state={orbState} analyserNode={analyserNode} size={240} />
+      {/* Conversation bubbles — grows to fill, sticks to bottom */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-5 pt-16 pb-3"
+        style={{ scrollBehavior: "smooth" }}
+      >
+        <div className="flex flex-col gap-3 justify-end min-h-full">
+          {voiceMessages.map((msg) => (
+            <BubbleRow key={msg.id} msg={msg} />
+          ))}
+        </div>
+      </div>
+
+      {/* Orb + controls */}
+      <div className="flex-none flex flex-col items-center gap-4 pb-10 pt-3">
+        <div style={{ filter: `drop-shadow(0 0 ${orbSize / 6}px var(--accent))` }}>
+          <VoiceOrb state={orbState} analyserNode={analyserNode} size={orbSize} />
         </div>
 
-        {/* State label */}
         <p
-          className="text-sm font-medium tracking-wide"
-          style={{ color: "var(--text-muted)" }}
+          className="text-sm font-medium tracking-wide transition-all duration-300"
+          style={{ color: "rgba(255,255,255,0.4)", minHeight: "1.25rem" }}
         >
-          {stateLabel[orbState]}
+          {statusLabel}
         </p>
 
-        {/* User transcript */}
-        {liveTranscript && (
-          <div
-            className="w-full px-4 py-3 rounded-xl text-sm text-center"
-            style={{
-              background: "var(--input-bg)",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
-            }}
-          >
-            <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", display: "block", marginBottom: "4px" }}>
-              YOU
-            </span>
-            {liveTranscript}
-          </div>
-        )}
+        <MicButton
+          isRecording={isRecording}
+          disabled={micDisabled}
+          onClick={handleMicClick}
+        />
 
-        {/* AI response text */}
-        {assistantText && (
-          <div
-            className="w-full px-4 py-3 rounded-xl text-sm max-h-36 overflow-y-auto"
-            style={{
-              background: "var(--input-bg)",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
-            }}
-          >
-            <span style={{ color: "var(--accent)", fontSize: "0.7rem", display: "block", marginBottom: "4px" }}>
-              MEGPT
-            </span>
-            {assistantText}
-          </div>
-        )}
-
-        {/* Mic button */}
-        <button
-          onClick={handleMicToggle}
-          disabled={orbState === "processing" || orbState === "speaking"}
-          className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        <p
+          className="text-xs transition-opacity duration-300"
           style={{
-            background: isRecording ? "#ef4444" : "var(--accent)",
-            boxShadow: isRecording
-              ? "0 0 0 6px rgba(239,68,68,0.25), 0 0 0 12px rgba(239,68,68,0.1)"
-              : "0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent)",
-            color: "#fff",
+            color: "rgba(255,255,255,0.2)",
+            opacity: !isRecording && orbState === "idle" ? 1 : 0,
           }}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
         >
-          {isRecording ? <StopIcon /> : <MicIcon />}
-        </button>
+          Auto-stops on silence
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes bubbleIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.96); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes dotBounce {
+          0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+          40%           { opacity: 1;   transform: translateY(-3px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ── Bubble row ─────────────────────────────────────────────────────────────── */
+
+function BubbleRow({ msg }: { msg: VoiceMessage }) {
+  const isUser = msg.role === "user";
+
+  return (
+    <div
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+      style={{ animation: "bubbleIn 0.22s ease-out both" }}
+    >
+      <div
+        className="max-w-[80%] px-4 py-2.5 text-sm leading-relaxed"
+        style={
+          isUser
+            ? {
+                background: "var(--accent)",
+                color: "#fff",
+                borderRadius: "18px 18px 4px 18px",
+              }
+            : {
+                background: "rgba(255,255,255,0.07)",
+                color: "rgba(255,255,255,0.88)",
+                border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: "18px 18px 18px 4px",
+              }
+        }
+      >
+        {msg.text || (msg.isStreaming ? <TypingDots /> : null)}
       </div>
     </div>
   );
 }
 
-/* ── Icons ─────────────────────────────────────────────────────────────────── */
+/* ── Typing dots ────────────────────────────────────────────────────────────── */
+
+function TypingDots() {
+  return (
+    <span className="flex gap-1 items-center" style={{ height: "1.1rem" }}>
+      {[0, 0.2, 0.4].map((delay, i) => (
+        <span
+          key={i}
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.45)",
+            display: "inline-block",
+            animation: `dotBounce 1.2s ease-in-out ${delay}s infinite`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/* ── Mic button ─────────────────────────────────────────────────────────────── */
+
+function MicButton({
+  isRecording,
+  disabled,
+  onClick,
+}: {
+  isRecording: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+      style={{
+        background: isRecording ? "#ef4444" : "var(--accent)",
+        boxShadow: isRecording
+          ? "0 0 0 6px rgba(239,68,68,0.22), 0 0 0 14px rgba(239,68,68,0.07)"
+          : "0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent)",
+        color: "#fff",
+      }}
+      aria-label={isRecording ? "Stop recording" : "Start recording"}
+    >
+      {isRecording ? <StopIcon /> : <MicIcon />}
+    </button>
+  );
+}
+
+/* ── SVG icons ──────────────────────────────────────────────────────────────── */
 
 function CloseIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>

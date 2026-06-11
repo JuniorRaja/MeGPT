@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     kokoro_url: str = "http://localhost:8880"
     tts_voice: str = "af_heart"
+    tts_provider: str = "fish"  # fish | kokoro
+    fish_audio_api_key: str = ""
+    fish_audio_voice_id: str = ""
 
     qdrant_collection: str = "megpt_knowledge"
     embed_dim: int = 768

@@ -42,16 +42,16 @@ export default function HomePage() {
   } = useChat();
   const { theme, setTheme, mode, toggleMode } = useTheme();
 
-  // Voice chat — pipe streaming text and latest assistant text into voice hook
+  // Voice chat — pipe live streaming text into voice hook for sentence-flush TTS
   const streamingText = messages.findLast((m) => m.role === "assistant" && m.isStreaming)?.content ?? "";
-  const assistantText = messages.findLast((m) => m.role === "assistant")?.content ?? "";
 
   const {
     orbState,
     analyserNode,
-    liveTranscript,
     isVoiceActive,
     isRecording,
+    statusLabel,
+    voiceMessages,
     openVoice,
     closeVoice,
     startListening,
@@ -110,8 +110,8 @@ export default function HomePage() {
         <VoiceChatModal
           orbState={orbState}
           analyserNode={analyserNode}
-          liveTranscript={liveTranscript}
-          assistantText={assistantText}
+          voiceMessages={voiceMessages}
+          statusLabel={statusLabel}
           isRecording={isRecording}
           onStartListening={startListening}
           onStopListening={stopListening}

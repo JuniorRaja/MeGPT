@@ -5,6 +5,22 @@ import { synthesizeSpeech, transcribeAudio } from "@/lib/api";
 
 export type OrbState = "idle" | "listening" | "processing" | "speaking";
 
+export interface VoiceMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  isStreaming: boolean;
+}
+
+const GREETINGS = [
+  "Hey, what's on your mind?",
+  "Hello! What would you like to talk about?",
+  "Hi there, I'm MeGPT — how can I help?",
+];
+
+const SILENCE_THRESHOLD = 12; // 0–255 frequency average; tune up if false-triggers
+const SILENCE_DURATION_MS = 1500;
+
 export function useVoiceChat(
   send: (text: string) => void,
   streamingText: string,
@@ -12,9 +28,10 @@ export function useVoiceChat(
 ) {
   const [orbState, setOrbState] = useState<OrbState>("idle");
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
-  const [liveTranscript, setLiveTranscript] = useState("");
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [statusLabel, setStatusLabel] = useState("Tap to speak");
+  const [voiceMessages, setVoiceMessages] = useState<VoiceMessage[]>([]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -26,26 +43,43 @@ export function useVoiceChat(
   const isVoiceActiveRef = useRef(false);
   const streamingTextRef = useRef("");
   const prevStreamingRef = useRef(false);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hadSpeechRef = useRef(false);
+  const levelCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
 
-  // Keep refs in sync
   isVoiceActiveRef.current = isVoiceActive;
-  streamingTextRef.current = streamingText;
+  // Only update when non-empty — flush effect reads this ref AFTER streamingText
+  // has already become "" (findLast no longer finds an isStreaming message)
+  if (streamingText) streamingTextRef.current = streamingText;
 
-  function getAudioCtx(): AudioContext {
+  async function getAudioCtx(): Promise<AudioContext> {
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
       audioCtxRef.current = new AudioContext();
     }
     if (audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume();
+      await audioCtxRef.current.resume();
     }
     return audioCtxRef.current;
   }
 
-  const playNext = useCallback(() => {
+  const stopSilenceDetection = useCallback(() => {
+    if (levelCheckIntervalRef.current) {
+      clearInterval(levelCheckIntervalRef.current);
+      levelCheckIntervalRef.current = null;
+    }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
+
+  const playNext = useCallback(async () => {
     if (!audioQueueRef.current.length) {
       isPlayingRef.current = false;
       setOrbState("idle");
       setAnalyserNode(null);
+      setStatusLabel("Tap to speak");
       return;
     }
 
@@ -54,7 +88,7 @@ export function useVoiceChat(
     audio.crossOrigin = "anonymous";
     currentAudioRef.current = audio;
 
-    const ctx = getAudioCtx();
+    const ctx = await getAudioCtx();
     const source = ctx.createMediaElementSource(audio);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
@@ -63,39 +97,49 @@ export function useVoiceChat(
 
     setAnalyserNode(analyser);
     setOrbState("speaking");
+    setStatusLabel("Speaking…");
     isPlayingRef.current = true;
 
     const advance = () => {
       URL.revokeObjectURL(url);
-      playNext();
+      void playNext();
     };
     audio.onended = advance;
     audio.onerror = advance;
     audio.play().catch(advance);
-  }, []); // stable — only uses refs and setters
+  }, []);
 
   const fetchAndEnqueue = useCallback(
     async (text: string) => {
       if (!text.trim() || !isVoiceActiveRef.current) return;
       try {
         const blob = await synthesizeSpeech(text);
-        if (!isVoiceActiveRef.current) {
-          // Voice was closed while we awaited — discard
-          return;
-        }
+        if (!isVoiceActiveRef.current) return;
         const url = URL.createObjectURL(blob);
         audioQueueRef.current.push(url);
         if (!isPlayingRef.current) playNext();
       } catch {
-        // TTS failure is non-fatal; skip this sentence
+        // TTS failure non-fatal; skip sentence
       }
     },
     [playNext],
   );
 
-  // Flush completed sentences while the LLM is streaming
+  // Update streaming assistant bubble + enqueue sentences as LLM generates
   useEffect(() => {
     if (!isVoiceActive || !isStreaming || !streamingText) return;
+
+    setVoiceMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.isStreaming) {
+        return [...prev.slice(0, -1), { ...last, text: streamingText }];
+      }
+      return prev;
+    });
+
+    // Transition label from "Thinking…" to "Preparing voice…" on first token
+    setStatusLabel((prev) => (prev === "Thinking…" ? "Preparing voice…" : prev));
+
     const sentences = streamingText.match(/[^.!?]+[.!?]+/g) ?? [];
     const count = sentences.length;
     if (count > processedSentencesRef.current) {
@@ -108,7 +152,7 @@ export function useVoiceChat(
     }
   }, [streamingText, isVoiceActive, isStreaming, fetchAndEnqueue]);
 
-  // Flush remainder when LLM stream ends
+  // Flush remainder and finalise message when LLM stream ends
   useEffect(() => {
     if (!isVoiceActive) return;
     const justFinished = prevStreamingRef.current && !isStreaming;
@@ -116,6 +160,14 @@ export function useVoiceChat(
 
     if (justFinished) {
       const text = streamingTextRef.current;
+      setVoiceMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.isStreaming) {
+          return [...prev.slice(0, -1), { ...last, text, isStreaming: false }];
+        }
+        return prev;
+      });
+
       const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [];
       const processedText = sentences.join("");
       const remainder = text.slice(processedText.length).trim();
@@ -124,21 +176,42 @@ export function useVoiceChat(
     }
   }, [isStreaming, isVoiceActive, fetchAndEnqueue]);
 
+  const stopAndSubmitRecording = useCallback(() => {
+    stopSilenceDetection();
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    micStreamRef.current?.getTracks().forEach((t) => t.stop());
+    hadSpeechRef.current = false;
+  }, [stopSilenceDetection]);
+
   const startListening = useCallback(async () => {
+    // Interrupt speaking if active
+    if (isPlayingRef.current && currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.src = "";
+      currentAudioRef.current = null;
+      audioQueueRef.current.forEach(URL.revokeObjectURL);
+      audioQueueRef.current = [];
+      isPlayingRef.current = false;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       micStreamRef.current = stream;
 
-      const ctx = getAudioCtx();
+      const ctx = await getAudioCtx();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       source.connect(analyser);
-      // Not connected to destination — prevents mic monitoring feedback
+      micAnalyserRef.current = analyser;
 
       setAnalyserNode(analyser);
       setOrbState("listening");
+      setStatusLabel("Listening…");
       setIsRecording(true);
+      hadSpeechRef.current = false;
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -155,66 +228,98 @@ export function useVoiceChat(
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        stopSilenceDetection();
         stream.getTracks().forEach((t) => t.stop());
         micStreamRef.current = null;
+        micAnalyserRef.current = null;
         setAnalyserNode(null);
         setOrbState("processing");
+        setStatusLabel("Transcribing…");
         setIsRecording(false);
+
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
 
         try {
           const transcript = await transcribeAudio(blob);
           if (transcript.trim() && isVoiceActiveRef.current) {
-            setLiveTranscript(transcript);
+            setStatusLabel("Thinking…");
+            setVoiceMessages((prev) => [
+              ...prev,
+              { id: crypto.randomUUID(), role: "user", text: transcript, isStreaming: false },
+              { id: crypto.randomUUID(), role: "assistant", text: "", isStreaming: true },
+            ]);
             send(transcript);
           } else {
             setOrbState("idle");
+            setStatusLabel("Tap to speak");
           }
         } catch {
           setOrbState("idle");
+          setStatusLabel("Tap to speak");
         }
       };
 
       recorder.start();
+
+      // Silence detection — auto-submit after SILENCE_DURATION_MS of quiet post-speech
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      levelCheckIntervalRef.current = setInterval(() => {
+        if (!micAnalyserRef.current) return;
+        micAnalyserRef.current.getByteFrequencyData(freqData);
+        const avg = freqData.reduce((a, b) => a + b, 0) / freqData.length;
+
+        if (avg > SILENCE_THRESHOLD) {
+          hadSpeechRef.current = true;
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+        } else if (hadSpeechRef.current && !silenceTimerRef.current) {
+          silenceTimerRef.current = setTimeout(stopAndSubmitRecording, SILENCE_DURATION_MS);
+        }
+      }, 100);
     } catch {
       setOrbState("idle");
+      setStatusLabel("Tap to speak");
       setIsRecording(false);
     }
-  }, [send]);
+  }, [send, stopSilenceDetection, stopAndSubmitRecording]);
 
   const stopListening = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-    micStreamRef.current?.getTracks().forEach((t) => t.stop());
-  }, []);
+    stopAndSubmitRecording();
+  }, [stopAndSubmitRecording]);
 
   const openVoice = useCallback(() => {
     setIsVoiceActive(true);
     setOrbState("idle");
-    setLiveTranscript("");
+    setStatusLabel("Tap to speak");
+    setVoiceMessages([]);
     setAnalyserNode(null);
     processedSentencesRef.current = 0;
     audioQueueRef.current = [];
     isPlayingRef.current = false;
     prevStreamingRef.current = false;
+    hadSpeechRef.current = false;
   }, []);
+
+  // Play welcome greeting on each open
+  useEffect(() => {
+    if (!isVoiceActive) return;
+    const greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+    setVoiceMessages([{ id: crypto.randomUUID(), role: "assistant", text: greeting, isStreaming: false }]);
+    fetchAndEnqueue(greeting);
+    // intentionally omitting fetchAndEnqueue from deps — it's stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVoiceActive]);
 
   const closeVoice = useCallback(() => {
     setIsVoiceActive(false);
-    // Stop mic recording
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-    micStreamRef.current?.getTracks().forEach((t) => t.stop());
-    micStreamRef.current = null;
-    // Stop current audio
+    stopAndSubmitRecording();
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.src = "";
       currentAudioRef.current = null;
     }
-    // Revoke all queued blob URLs
     audioQueueRef.current.forEach(URL.revokeObjectURL);
     audioQueueRef.current = [];
     isPlayingRef.current = false;
@@ -222,15 +327,17 @@ export function useVoiceChat(
     setOrbState("idle");
     setAnalyserNode(null);
     setIsRecording(false);
-    setLiveTranscript("");
-  }, []);
+    setStatusLabel("Tap to speak");
+    setVoiceMessages([]);
+  }, [stopAndSubmitRecording]);
 
   return {
     orbState,
     analyserNode,
-    liveTranscript,
     isVoiceActive,
     isRecording,
+    statusLabel,
+    voiceMessages,
     openVoice,
     closeVoice,
     startListening,
