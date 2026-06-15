@@ -35,7 +35,8 @@ export async function streamMessage(
   incognito: boolean,
   onToken: (token: string) => void,
   onDone: (sessionId: string, modelUsed: string, costUsd: number, tokensIn: number, tokensOut: number) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  voiceMode?: boolean,
 ): Promise<void> {
   const res = await fetch(`${API_URL}/chat/stream`, {
     method: "POST",
@@ -46,6 +47,7 @@ export async function streamMessage(
       model,
       title: message.slice(0, 60),
       incognito,
+      voice_mode: voiceMode ?? false,
     }),
     signal,
   });

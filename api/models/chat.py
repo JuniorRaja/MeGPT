@@ -9,6 +9,7 @@ class ChatRequest(BaseModel):
     model: Optional[str] = None
     title: Optional[str] = None
     incognito: bool = False
+    voice_mode: bool = False
 
 
 class ChatResponse(BaseModel):

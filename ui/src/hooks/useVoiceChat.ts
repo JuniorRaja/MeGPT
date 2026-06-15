@@ -20,9 +20,11 @@ const GREETINGS = [
 
 const SILENCE_THRESHOLD = 12; // 0–255 frequency average; tune up if false-triggers
 const SILENCE_DURATION_MS = 1500;
+const TTS_GAIN = 1.8;          // volume multiplier applied to all TTS playback
+const TTS_PLAYBACK_RATE = 1.3; // speed multiplier (1.0 = normal, 1.3 = 30% faster)
 
 export function useVoiceChat(
-  send: (text: string) => void,
+  send: (text: string, voiceMode?: boolean) => void,
   streamingText: string,
   isStreaming: boolean,
 ) {
@@ -37,7 +39,10 @@ export function useVoiceChat(
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const audioQueueRef = useRef<string[]>([]);
+  // Ordered slot array: null = TTS pending, "" = consumed/failed, "blob:..." = ready to play
+  const audioQueueRef = useRef<(string | null)[]>([]);
+  // Index of the next slot to play (never decrements; array is never shifted)
+  const playHeadRef = useRef(0);
   const isPlayingRef = useRef(false);
   const processedSentencesRef = useRef(0);
   const isVoiceActiveRef = useRef(false);
@@ -75,7 +80,15 @@ export function useVoiceChat(
   }, []);
 
   const playNext = useCallback(async () => {
-    if (!audioQueueRef.current.length) {
+    const queue = audioQueueRef.current;
+
+    // Advance past consumed/failed slots
+    while (playHeadRef.current < queue.length && queue[playHeadRef.current] === "") {
+      playHeadRef.current++;
+    }
+
+    // Queue exhausted — return to idle
+    if (playHeadRef.current >= queue.length) {
       isPlayingRef.current = false;
       setOrbState("idle");
       setAnalyserNode(null);
@@ -83,17 +96,31 @@ export function useVoiceChat(
       return;
     }
 
-    const url = audioQueueRef.current.shift()!;
+    // Next slot still waiting for TTS to complete — playNext will be re-triggered
+    // by fetchAndEnqueue when the slot fills
+    if (queue[playHeadRef.current] === null) {
+      isPlayingRef.current = false;
+      return;
+    }
+
+    const url = queue[playHeadRef.current]!;
+    queue[playHeadRef.current] = ""; // mark consumed before advancing
+    playHeadRef.current++;
+
     const audio = new Audio(url);
     audio.crossOrigin = "anonymous";
+    audio.playbackRate = TTS_PLAYBACK_RATE;
     currentAudioRef.current = audio;
 
     const ctx = await getAudioCtx();
     const source = ctx.createMediaElementSource(audio);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = TTS_GAIN;
     source.connect(analyser);
-    analyser.connect(ctx.destination);
+    analyser.connect(gainNode);
+    gainNode.connect(ctx.destination);
 
     setAnalyserNode(analyser);
     setOrbState("speaking");
@@ -112,14 +139,25 @@ export function useVoiceChat(
   const fetchAndEnqueue = useCallback(
     async (text: string) => {
       if (!text.trim() || !isVoiceActiveRef.current) return;
+
+      // Reserve an ordered slot synchronously before any await so that
+      // concurrent TTS calls for different sentences always play in text order
+      // regardless of which network response returns first.
+      const slot = audioQueueRef.current.length;
+      audioQueueRef.current.push(null);
+
       try {
         const blob = await synthesizeSpeech(text);
-        if (!isVoiceActiveRef.current) return;
+        if (!isVoiceActiveRef.current) {
+          audioQueueRef.current[slot] = ""; // discard if voice closed mid-flight
+          return;
+        }
         const url = URL.createObjectURL(blob);
-        audioQueueRef.current.push(url);
-        if (!isPlayingRef.current) playNext();
+        audioQueueRef.current[slot] = url;
+        if (!isPlayingRef.current) void playNext();
       } catch {
-        // TTS failure non-fatal; skip sentence
+        audioQueueRef.current[slot] = ""; // skip sentence on TTS failure
+        if (!isPlayingRef.current) void playNext();
       }
     },
     [playNext],
@@ -191,8 +229,9 @@ export function useVoiceChat(
       currentAudioRef.current.pause();
       currentAudioRef.current.src = "";
       currentAudioRef.current = null;
-      audioQueueRef.current.forEach(URL.revokeObjectURL);
+      audioQueueRef.current.forEach((url) => { if (url) URL.revokeObjectURL(url); });
       audioQueueRef.current = [];
+      playHeadRef.current = 0;
       isPlayingRef.current = false;
     }
 
@@ -248,7 +287,7 @@ export function useVoiceChat(
               { id: crypto.randomUUID(), role: "user", text: transcript, isStreaming: false },
               { id: crypto.randomUUID(), role: "assistant", text: "", isStreaming: true },
             ]);
-            send(transcript);
+            send(transcript, true);
           } else {
             setOrbState("idle");
             setStatusLabel("Tap to speak");
@@ -297,6 +336,7 @@ export function useVoiceChat(
     setAnalyserNode(null);
     processedSentencesRef.current = 0;
     audioQueueRef.current = [];
+    playHeadRef.current = 0;
     isPlayingRef.current = false;
     prevStreamingRef.current = false;
     hadSpeechRef.current = false;
@@ -320,8 +360,9 @@ export function useVoiceChat(
       currentAudioRef.current.src = "";
       currentAudioRef.current = null;
     }
-    audioQueueRef.current.forEach(URL.revokeObjectURL);
+    audioQueueRef.current.forEach((url) => { if (url) URL.revokeObjectURL(url); });
     audioQueueRef.current = [];
+    playHeadRef.current = 0;
     isPlayingRef.current = false;
     processedSentencesRef.current = 0;
     setOrbState("idle");

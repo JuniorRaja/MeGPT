@@ -1,6 +1,8 @@
 import logging
-import msgpack
+from collections.abc import AsyncIterator
+
 import httpx
+import msgpack
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 
@@ -53,26 +55,32 @@ async def transcribe(request: Request, file: UploadFile = File(...)) -> Transcri
     return TranscribeResponse(transcript=resp.json().get("text", ""))
 
 
-async def _synthesize_fish(client: httpx.AsyncClient, text: str) -> bytes:
+async def _fish_audio_stream(text: str) -> AsyncIterator[bytes]:
     payload = msgpack.packb({
         "text": text,
         "reference_id": settings.fish_audio_voice_id,
-        "model": "speech-1.5",
+        "model": "s2-pro",
         "format": "wav",
-        "streaming": False,
-        "latency": "normal",
+        "streaming": True,
+        "latency": "balanced",
+        "normalize": True,
     })
-    resp = await client.post(
-        _FISH_TTS_URL,
-        content=payload,
-        headers={
-            "Authorization": f"Bearer {settings.fish_audio_api_key}",
-            "Content-Type": "application/msgpack",
-        },
-        timeout=60.0,
-    )
-    resp.raise_for_status()
-    return resp.content
+    async with httpx.AsyncClient() as client:
+        async with client.stream(
+            "POST",
+            _FISH_TTS_URL,
+            content=payload,
+            headers={
+                "Authorization": f"Bearer {settings.fish_audio_api_key}",
+                "Content-Type": "application/msgpack",
+            },
+            timeout=60.0,
+        ) as resp:
+            if resp.status_code != 200:
+                await resp.aread()
+                resp.raise_for_status()
+            async for chunk in resp.aiter_bytes(chunk_size=4096):
+                yield chunk
 
 
 async def _synthesize_kokoro(client: httpx.AsyncClient, text: str) -> bytes:
@@ -100,27 +108,63 @@ async def synthesize(request: Request, req: SynthesizeRequest) -> StreamingRespo
         and bool(settings.fish_audio_voice_id)
     )
 
-    provider_used = "unknown"
+    if use_fish:
+        gen = _fish_audio_stream(req.text)
+        try:
+            first_chunk = await gen.__anext__()
+        except StopAsyncIteration:
+            first_chunk = b""
+        except Exception as exc:
+            log.warning("Fish Audio failed (%s), falling back to Kokoro", exc)
+            await gen.aclose()
+            async with httpx.AsyncClient() as client:
+                try:
+                    audio_bytes = await _synthesize_kokoro(client, req.text)
+                except httpx.HTTPStatusError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"TTS error {e.response.status_code}",
+                    )
+                except httpx.RequestError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"TTS request failed: {e}",
+                    )
+            log.info("TTS synthesized %d bytes via kokoro-fallback", len(audio_bytes))
+            return StreamingResponse(
+                content=iter([audio_bytes]),
+                media_type="audio/wav",
+                headers={
+                    "Content-Length": str(len(audio_bytes)),
+                    "Cache-Control": "no-cache",
+                    "X-TTS-Provider": "kokoro-fallback",
+                },
+            )
+
+        async def _piped() -> AsyncIterator[bytes]:
+            if first_chunk:
+                yield first_chunk
+            async for chunk in gen:
+                yield chunk
+
+        log.info("TTS streaming via fish (balanced latency)")
+        return StreamingResponse(
+            content=_piped(),
+            media_type="audio/wav",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-TTS-Provider": "fish",
+            },
+        )
+
+    if not settings.kokoro_url:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="TTS not configured: neither Fish Audio nor Kokoro is configured",
+        )
     async with httpx.AsyncClient() as client:
         try:
-            if use_fish:
-                try:
-                    audio_bytes = await _synthesize_fish(client, req.text)
-                    provider_used = "fish"
-                except Exception as exc:
-                    log.warning("Fish Audio failed (%s), falling back to Kokoro", exc)
-                    audio_bytes = await _synthesize_kokoro(client, req.text)
-                    provider_used = "kokoro-fallback"
-            else:
-                if not settings.kokoro_url:
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="TTS not configured: neither Fish Audio nor Kokoro is configured",
-                    )
-                audio_bytes = await _synthesize_kokoro(client, req.text)
-                provider_used = "kokoro"
-        except HTTPException:
-            raise
+            audio_bytes = await _synthesize_kokoro(client, req.text)
         except httpx.HTTPStatusError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -131,14 +175,13 @@ async def synthesize(request: Request, req: SynthesizeRequest) -> StreamingRespo
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"TTS request failed: {exc}",
             )
-
-    log.info("TTS synthesized %d bytes via %s", len(audio_bytes), provider_used)
+    log.info("TTS synthesized %d bytes via kokoro", len(audio_bytes))
     return StreamingResponse(
         content=iter([audio_bytes]),
         media_type="audio/wav",
         headers={
             "Content-Length": str(len(audio_bytes)),
             "Cache-Control": "no-cache",
-            "X-TTS-Provider": provider_used,
+            "X-TTS-Provider": "kokoro",
         },
     )

@@ -63,7 +63,7 @@ export function useChat() {
   }, []);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, voiceMode?: boolean) => {
       if (!text.trim() || isLoading) return;
       setError(null);
 
@@ -111,7 +111,8 @@ export function useChat() {
             setAllTimeTokens((t) => t + tokensIn + tokensOut);
             setIsLoading(false);
           },
-          abortRef.current.signal
+          abortRef.current.signal,
+          voiceMode,
         );
       } catch (err) {
         if ((err as Error).name !== "AbortError") {

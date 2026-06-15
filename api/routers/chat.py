@@ -106,10 +106,12 @@ def _get_fallback_chain(model: str) -> list[str]:
 _IST = timezone(timedelta(hours=5, minutes=30))
 
 
-def _build_messages(message: str, context_block: str, history: list[dict]) -> list[dict]:
+def _build_messages(message: str, context_block: str, history: list[dict], voice_mode: bool = False) -> list[dict]:
     now = datetime.now(_IST)
     date_line = f"Current date and time: {now.strftime('%A, %d %B %Y, %H:%M IST')}."
     system_content = SYSTEM_PROMPT + f"\n\n{date_line}"
+    if voice_mode:
+        system_content += "\n\n[Voice mode: this reply will be read aloud. Keep it to 1-2 short sentences max. No lists, no markdown.]"
     if context_block:
         system_content += f"\n\n---\nContext from PR's knowledge base:\n{context_block}\n---"
 
@@ -167,7 +169,7 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     else:
         context_block = ""
 
-    messages = _build_messages(req.message, context_block, history)
+    messages = _build_messages(req.message, context_block, history, req.voice_mode)
     model = _route_model(req.message, req.model)
     chain = _get_fallback_chain(model)
 
@@ -243,7 +245,7 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     else:
         context_block = ""
 
-    messages = _build_messages(req.message, context_block, history)
+    messages = _build_messages(req.message, context_block, history, req.voice_mode)
     model = _route_model(req.message, req.model)
     chain = _get_fallback_chain(model)
     input_text = " ".join(m.get("content", "") for m in messages)

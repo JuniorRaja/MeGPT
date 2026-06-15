@@ -75,7 +75,7 @@ export function VoiceChatModal({
       >
         <div className="flex flex-col gap-3 justify-end min-h-full">
           {voiceMessages.map((msg) => (
-            <BubbleRow key={msg.id} msg={msg} />
+            <BubbleRow key={msg.id} msg={msg} orbState={orbState} />
           ))}
         </div>
       </div>
@@ -126,7 +126,7 @@ export function VoiceChatModal({
 
 /* ── Bubble row ─────────────────────────────────────────────────────────────── */
 
-function BubbleRow({ msg }: { msg: VoiceMessage }) {
+function BubbleRow({ msg, orbState }: { msg: VoiceMessage; orbState: OrbState }) {
   const isUser = msg.role === "user";
 
   return (
@@ -151,7 +151,9 @@ function BubbleRow({ msg }: { msg: VoiceMessage }) {
               }
         }
       >
-        {msg.text || (msg.isStreaming ? <TypingDots /> : null)}
+        {msg.isStreaming && orbState !== "speaking"
+          ? <TypingDots />
+          : (msg.text || (msg.isStreaming ? <TypingDots /> : null))}
       </div>
     </div>
   );
