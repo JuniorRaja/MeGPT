@@ -3,12 +3,14 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ModelSelector } from "./ModelSelector";
 
-const PROMPT_CHIPS = [
-  { icon: "</>", label: "Code" },
-  { icon: "✍️", label: "Write" },
-  { icon: "🎓", label: "Learn" },
-  { icon: "☕", label: "Life stuff" },
-  { icon: "💬", label: "Ask anything" },
+type Chip = { icon: string; label: string; voice?: boolean };
+
+const PROMPT_CHIPS: Chip[] = [
+  { icon: "{ }", label: "His projects" },
+  { icon: "⚡", label: "Tech stack" },
+  { icon: "🎯", label: "Beyond the code" },
+  { icon: "🎙️", label: "Talk to him", voice: true },
+  { icon: "💼", label: "Hire Prasanna?" },
 ];
 
 const VISITOR_NAMES = ["visitor", "stranger", "friend", "curious one", "wanderer"];
@@ -55,11 +57,10 @@ export function WelcomeScreen({ onChipClick, onVoiceClick, model, onModelChange 
   }, []);
 
   const chipQuestions: Record<string, string> = {
-    Code: "What's Prasanna's tech stack and what has he built?",
-    Write: "Tell me about Prasanna's writing and content",
-    Learn: "What has Prasanna been learning recently?",
-    "Life stuff": "Tell me about Prasanna outside of work",
-    "Ask anything": "Who is Prasanna?",
+    "His projects": "What are Prasanna's most interesting projects and what did he build?",
+    "Tech stack": "What's Prasanna's tech stack and areas of expertise?",
+    "Beyond the code": "Tell me about Prasanna outside of work — interests, personality, what drives him",
+    "Hire Prasanna?": "Why should I hire Prasanna? What makes him stand out from other engineers?",
   };
 
   const handleSend = () => {
@@ -172,6 +173,7 @@ export function WelcomeScreen({ onChipClick, onVoiceClick, model, onModelChange 
           <button
             key={chip.label}
             onClick={() => {
+              if (chip.voice) { onVoiceClick?.(); return; }
               const q = chipQuestions[chip.label];
               setInputValue(q);
               textareaRef.current?.focus();
