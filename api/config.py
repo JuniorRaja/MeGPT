@@ -27,5 +27,11 @@ class Settings(BaseSettings):
     qdrant_collection: str = "megpt_knowledge"
     embed_dim: int = 768
 
+    github_token: str = ""
+    github_username: str = "JuniorRaja"
+
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
 
 settings = Settings()

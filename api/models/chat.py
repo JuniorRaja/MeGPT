@@ -1,6 +1,8 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+ChatMode = Literal["natural", "professional", "chill", "flirty"]
 
 
 class ChatRequest(BaseModel):
@@ -10,6 +12,7 @@ class ChatRequest(BaseModel):
     title: Optional[str] = None
     incognito: bool = False
     voice_mode: bool = False
+    mode: ChatMode = "natural"
 
 
 class ChatResponse(BaseModel):

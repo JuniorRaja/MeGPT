@@ -37,6 +37,7 @@ export async function streamMessage(
   onDone: (sessionId: string, modelUsed: string, costUsd: number, tokensIn: number, tokensOut: number) => void,
   signal?: AbortSignal,
   voiceMode?: boolean,
+  chatMode?: string,
 ): Promise<void> {
   const res = await fetch(`${API_URL}/chat/stream`, {
     method: "POST",
@@ -48,6 +49,7 @@ export async function streamMessage(
       title: message.slice(0, 60),
       incognito,
       voice_mode: voiceMode ?? false,
+      mode: chatMode ?? "natural",
     }),
     signal,
   });
@@ -108,11 +110,14 @@ export async function getStats(): Promise<StatItem[]> {
 
 export async function submitFeedback(
   messageId: string,
-  rating: 1 | -1
+  rating: 1 | -1,
+  question?: string,
+  answer?: string,
+  sessionId?: string,
 ): Promise<void> {
   await apiFetch(`/feedback/${messageId}`, {
     method: "POST",
-    body: JSON.stringify({ rating }),
+    body: JSON.stringify({ rating, question: question ?? "", answer: answer ?? "", session_id: sessionId ?? "" }),
   });
 }
 

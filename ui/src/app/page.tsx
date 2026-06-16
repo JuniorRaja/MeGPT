@@ -34,6 +34,8 @@ export default function HomePage() {
     loadSession,
     activeModel,
     setActiveModel,
+    chatMode,
+    setChatMode,
     sessionCostUsd,
     sessionTokens,
     allTimeCostUsd,
@@ -85,21 +87,21 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleFeedback = useCallback(
-    async (messageId: string, rating: 1 | -1) => {
+    async (messageId: string, rating: 1 | -1, question?: string, answer?: string) => {
       try {
         await fetch(
           `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/feedback/${messageId}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rating }),
+            body: JSON.stringify({ rating, question: question ?? "", answer: answer ?? "", session_id: sessionId }),
           }
         );
       } catch {
         // feedback is best-effort
       }
     },
-    []
+    [sessionId]
   );
 
   return (
@@ -243,6 +245,8 @@ export default function HomePage() {
             contextFull={!isReadOnly && contextPercent >= 100}
             model={activeModel}
             onModelChange={setActiveModel}
+            chatMode={chatMode}
+            onModeChange={setChatMode}
           />
         )}
       </div>

@@ -10,6 +10,7 @@ from limiter import limiter
 from models.chat import ChatRequest, ChatResponse
 from services.bm25_service import bm25_service, reciprocal_rank_fusion
 from services.embed_service import embed_service
+from services.github_service import github_service
 from services.litellm_service import _JUDGE_MODEL, _compute_cost, estimate_cost, groq_remaining_requests, judge_message, litellm_service
 from services.pocketbase_service import pocketbase_service
 from services.qdrant_service import qdrant_service
@@ -74,6 +75,12 @@ _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 CONFIDENCE_THRESHOLD = 0.25
 
+MODE_MODIFIERS: dict[str, str] = {
+    "professional": "Tone override: respond with precision and structure. Concise, no fluff, business-appropriate. No jokes.",
+    "chill": "Tone override: respond super casually — short sentences, laid-back energy, maybe a little slang. Like texting a homie.",
+    "flirty": "Tone override: respond playfully and with charm. Light teasing, confident, fun — never inappropriate or explicit.",
+}
+
 
 def _route_model(message: str, requested: str | None) -> str:
     if requested and requested not in _AUTO_ROUTE_ALIASES and requested in _KNOWN_MODELS:
@@ -106,7 +113,7 @@ def _get_fallback_chain(model: str) -> list[str]:
 _IST = timezone(timedelta(hours=5, minutes=30))
 
 
-def _build_messages(message: str, context_block: str, history: list[dict], voice_mode: bool = False) -> list[dict]:
+def _build_messages(message: str, context_block: str, history: list[dict], voice_mode: bool = False, mode: str = "natural") -> list[dict]:
     now = datetime.now(_IST)
     date_line = f"Current date and time: {now.strftime('%A, %d %B %Y, %H:%M IST')}."
     system_content = SYSTEM_PROMPT + f"\n\n{date_line}"
@@ -116,6 +123,8 @@ def _build_messages(message: str, context_block: str, history: list[dict], voice
         system_content += f"\n\n---\nContext from PR's knowledge base:\n{context_block}\n---"
 
     msgs: list[dict] = [{"role": "system", "content": system_content}]
+    if mode and mode in MODE_MODIFIERS:
+        msgs.append({"role": "system", "content": MODE_MODIFIERS[mode]})
     msgs.extend(history)
     msgs.append({"role": "user", "content": message})
     return msgs
@@ -136,9 +145,11 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     history = await _load_history(req.session_id)
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
-    (verdict, judge_reply, intent, rewritten_query, judge_cost, judge_tok_in, judge_tok_out), query_vector = await asyncio.gather(
+    (verdict, judge_reply, intent, rewritten_query, judge_cost, judge_tok_in, judge_tok_out), query_vector, github_activity, github_repos = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
+        github_service.get_recent_activity(),
+        github_service.get_top_repos(),
     )
 
     if verdict != "pass":
@@ -169,7 +180,16 @@ async def chat(request: Request, req: ChatRequest) -> ChatResponse:
     else:
         context_block = ""
 
-    messages = _build_messages(req.message, context_block, history, req.voice_mode)
+    github_parts: list[str] = []
+    if intent in ("projects", "tech") and github_activity:
+        github_parts.append(f"[live] Recent GitHub activity:\n{github_activity}")
+    if intent == "projects" and github_repos:
+        github_parts.append(f"[live] GitHub repos:\n{github_repos}")
+    if github_parts:
+        live_block = "\n\n".join(github_parts)
+        context_block = live_block + ("\n\n" + context_block if context_block else "")
+
+    messages = _build_messages(req.message, context_block, history, req.voice_mode, req.mode)
     model = _route_model(req.message, req.model)
     chain = _get_fallback_chain(model)
 
@@ -211,9 +231,11 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     history = await _load_history(req.session_id)
     await pocketbase_service.save_message(session_id=req.session_id, role="user", content=req.message)
 
-    (verdict, judge_reply, intent, rewritten_query, judge_cost, judge_tok_in, judge_tok_out), query_vector = await asyncio.gather(
+    (verdict, judge_reply, intent, rewritten_query, judge_cost, judge_tok_in, judge_tok_out), query_vector, github_activity, github_repos = await asyncio.gather(
         judge_message(req.message),
         embed_service.embed(req.message),
+        github_service.get_recent_activity(),
+        github_service.get_top_repos(),
     )
 
     if verdict != "pass":
@@ -245,7 +267,16 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
     else:
         context_block = ""
 
-    messages = _build_messages(req.message, context_block, history, req.voice_mode)
+    github_parts_s: list[str] = []
+    if intent in ("projects", "tech") and github_activity:
+        github_parts_s.append(f"[live] Recent GitHub activity:\n{github_activity}")
+    if intent == "projects" and github_repos:
+        github_parts_s.append(f"[live] GitHub repos:\n{github_repos}")
+    if github_parts_s:
+        live_block = "\n\n".join(github_parts_s)
+        context_block = live_block + ("\n\n" + context_block if context_block else "")
+
+    messages = _build_messages(req.message, context_block, history, req.voice_mode, req.mode)
     model = _route_model(req.message, req.model)
     chain = _get_fallback_chain(model)
     input_text = " ".join(m.get("content", "") for m in messages)

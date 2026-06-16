@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, useRef, useState } from "react";
 import { ModelSelector } from "./ModelSelector";
+import { ModeSelector, type ChatMode } from "./ModeSelector";
 
 interface Props {
   onSend: (text: string) => void;
@@ -12,9 +13,11 @@ interface Props {
   contextFull?: boolean;
   model: string;
   onModelChange: (model: string) => void;
+  chatMode: ChatMode;
+  onModeChange: (mode: ChatMode) => void;
 }
 
-export function ChatInput({ onSend, onNewChat, onVoiceClick, disabled, readOnly, contextFull, model, onModelChange }: Props) {
+export function ChatInput({ onSend, onNewChat, onVoiceClick, disabled, readOnly, contextFull, model, onModelChange, chatMode, onModeChange }: Props) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -113,8 +116,11 @@ export function ChatInput({ onSend, onNewChat, onVoiceClick, disabled, readOnly,
             boxShadow: "var(--shadow-input)",
           }}
         >
+          {/* Mode selector */}
+          <ModeSelector value={chatMode} onChange={onModeChange} />
+
           {/* Textarea area */}
-          <div className="px-5 pt-4 pb-2">
+          <div className="px-5 pt-2 pb-2">
             <textarea
               ref={textareaRef}
               value={value}

@@ -12,7 +12,7 @@ interface Props {
   isLoading: boolean;
   onChipClick: (text: string) => void;
   onVoiceClick?: () => void;
-  onFeedback?: (messageId: string, rating: 1 | -1) => void;
+  onFeedback?: (messageId: string, rating: 1 | -1, question?: string, answer?: string) => void;
   onRetry?: (messageId: string) => void;
   onNewChat: () => void;
   model: string;
@@ -42,7 +42,7 @@ export function ChatWindow({ messages, isLoading, onChipClick, onVoiceClick, onF
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-2">
-        {messages.map((msg) => {
+        {messages.map((msg, idx) => {
           const msgTokens = (msg.tokens_in ?? 0) + (msg.tokens_out ?? 0);
           runningTokens += msgTokens;
           const pct = Math.min(100, Math.round((runningTokens / MAX_CONTEXT_TOKENS) * 100));
@@ -57,9 +57,17 @@ export function ChatWindow({ messages, isLoading, onChipClick, onVoiceClick, onF
             }
           }
 
+          // Find the preceding user message to attach as context for feedback
+          let precedingQuestion: string | undefined;
+          if (msg.role === "assistant") {
+            for (let i = idx - 1; i >= 0; i--) {
+              if (messages[i].role === "user") { precedingQuestion = messages[i].content; break; }
+            }
+          }
+
           return (
             <div key={msg.id}>
-              <MessageBubble message={msg} onFeedback={onFeedback} onRetry={onRetry} />
+              <MessageBubble message={msg} question={precedingQuestion} onFeedback={onFeedback} onRetry={onRetry} />
               {markers}
             </div>
           );

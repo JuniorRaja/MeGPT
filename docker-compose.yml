@@ -31,6 +31,11 @@ services:
       - "8090:8090"
     volumes:
       - pocketbase_data:/pb_data
+    env_file: .env
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      pocketbase superuser upsert "$PB_SUPERUSER_EMAIL" "$PB_SUPERUSER_PASSWORD" --dir /pb_data &&
+      exec pocketbase serve --http=0.0.0.0:8090 --dir /pb_data
     restart: unless-stopped
 
   kokoro:

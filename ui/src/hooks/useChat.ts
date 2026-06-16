@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { getSessionMessages, getStats, streamMessage } from "@/lib/api";
+import type { ChatMode } from "@/components/ModeSelector";
 import type { Message, MessageRecord } from "@/lib/types";
 
 function recordToMessage(r: MessageRecord): Message {
@@ -36,6 +37,7 @@ export function useChat() {
   const [isIncognito, setIsIncognito] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeModel, setActiveModel] = useState<string>("auto");
+  const [chatMode, setChatMode] = useState<ChatMode>("natural");
 
   // Session-level cost / token totals
   const [sessionCostUsd, setSessionCostUsd] = useState(0);
@@ -113,6 +115,7 @@ export function useChat() {
           },
           abortRef.current.signal,
           voiceMode,
+          chatMode,
         );
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
@@ -122,7 +125,7 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId, activeModel, isIncognito]
+    [isLoading, sessionId, activeModel, isIncognito, chatMode]
   );
 
   const newChat = useCallback(() => {
@@ -219,7 +222,9 @@ export function useChat() {
           setAllTimeTokens((t) => t + tokensIn + tokensOut);
           setIsLoading(false);
         },
-        abortRef.current.signal
+        abortRef.current.signal,
+        undefined,
+        chatMode,
       ).catch((err) => {
         if ((err as Error).name !== "AbortError") {
           setError(err instanceof Error ? err.message : "Something went wrong");
@@ -228,7 +233,7 @@ export function useChat() {
         setIsLoading(false);
       });
     },
-    [isLoading, isReadOnly, messages, sessionId, activeModel, isIncognito]
+    [isLoading, isReadOnly, messages, sessionId, activeModel, isIncognito, chatMode]
   );
 
   const MAX_CONTEXT_TOKENS = 25_000;
@@ -248,6 +253,8 @@ export function useChat() {
     loadSession,
     activeModel,
     setActiveModel,
+    chatMode,
+    setChatMode,
     sessionCostUsd,
     sessionTokens,
     allTimeCostUsd,

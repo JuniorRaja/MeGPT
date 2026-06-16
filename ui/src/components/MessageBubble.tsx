@@ -8,7 +8,8 @@ import type { Message } from "@/lib/types";
 
 interface Props {
   message: Message;
-  onFeedback?: (messageId: string, rating: 1 | -1) => void;
+  question?: string;
+  onFeedback?: (messageId: string, rating: 1 | -1, question?: string, answer?: string) => void;
   onRetry?: (messageId: string) => void;
 }
 
@@ -64,7 +65,7 @@ function parseThinking(content: string): ParsedContent {
   return { thinking: "", thinkingDone: true, response: content };
 }
 
-export function MessageBubble({ message, onFeedback, onRetry }: Props) {
+export function MessageBubble({ message, question, onFeedback, onRetry }: Props) {
   const [copied, setCopied] = useState(false);
   const [thinkExpanded, setThinkExpanded] = useState(false);
 
@@ -254,7 +255,7 @@ export function MessageBubble({ message, onFeedback, onRetry }: Props) {
             {/* Feedback */}
             <FeedbackButtons
               messageId={message.id}
-              onFeedback={onFeedback ? (r) => onFeedback(message.id, r) : undefined}
+              onFeedback={onFeedback ? (r) => onFeedback(message.id, r, question, response) : undefined}
             />
 
             {/* Timestamp + model + cost + tokens */}
