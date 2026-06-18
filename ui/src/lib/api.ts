@@ -71,22 +71,24 @@ export async function streamMessage(
     buffer = lines.pop()!;
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
+      // Parse separately so malformed JSON is skipped but backend errors propagate
+      let data: Record<string, unknown>;
       try {
-        const data = JSON.parse(line.slice(6));
-        if (data.token) onToken(data.token);
-        if (data.done) {
-          onDone(
-            data.session_id,
-            data.model_used ?? "",
-            data.cost_usd ?? 0,
-            data.tokens_in ?? 0,
-            data.tokens_out ?? 0
-          );
-        }
-        if (data.error) throw new Error(data.error);
+        data = JSON.parse(line.slice(6)) as Record<string, unknown>;
       } catch {
-        // skip malformed frames
+        continue; // skip malformed frames
       }
+      if (data.token) onToken(data.token as string);
+      if (data.done) {
+        onDone(
+          data.session_id as string,
+          (data.model_used as string) ?? "",
+          (data.cost_usd as number) ?? 0,
+          (data.tokens_in as number) ?? 0,
+          (data.tokens_out as number) ?? 0
+        );
+      }
+      if (data.error) throw new Error(data.error as string);
     }
   }
 }

@@ -319,15 +319,18 @@ async def chat_stream(request: Request, req: ChatRequest) -> StreamingResponse:
         else:
             cost_usd = _compute_cost(model, tokens_in, tokens_out)
 
-        await pocketbase_service.save_message(
-            session_id=req.session_id,
-            role="assistant",
-            content=full_content,
-            model_used=model,
-            cost_usd=cost_usd,
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
-        )
+        try:
+            await pocketbase_service.save_message(
+                session_id=req.session_id,
+                role="assistant",
+                content=full_content,
+                model_used=model,
+                cost_usd=cost_usd,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+            )
+        except Exception:
+            pass  # don't let a DB write failure prevent the done event from reaching the client
         yield f"data: {json.dumps({'done': True, 'session_id': req.session_id, 'model_used': model, 'cost_usd': cost_usd, 'tokens_in': tokens_in, 'tokens_out': tokens_out})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)

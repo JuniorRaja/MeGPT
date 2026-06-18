@@ -85,6 +85,7 @@ export function useChat() {
       ]);
 
       abortRef.current = new AbortController();
+      let doneCalled = false;
 
       try {
         await streamMessage(
@@ -100,6 +101,7 @@ export function useChat() {
             );
           },
           (_sid, modelUsed, costUsd, tokensIn, tokensOut) => {
+            doneCalled = true;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === streamingId
@@ -122,7 +124,15 @@ export function useChat() {
           setError(err instanceof Error ? err.message : "Something went wrong");
           setMessages((prev) => prev.filter((m) => m.id !== streamingId));
         }
-        setIsLoading(false);
+      } finally {
+        // Safety net: stream closed without a done event (backend crash, network drop,
+        // or swallowed error). Ensures isLoading never gets stuck true.
+        if (!doneCalled) {
+          setIsLoading(false);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === streamingId ? { ...m, isStreaming: false } : m))
+          );
+        }
       }
     },
     [isLoading, sessionId, activeModel, isIncognito, chatMode]
