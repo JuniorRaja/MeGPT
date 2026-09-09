@@ -48,11 +48,11 @@ A safety layer already handles off-topic requests, abuse, jailbreaks, and playfu
 """
 
 
-_GROQ_FAST_CHAIN = ["llama-3.1-8b-instant", "allam-2-7b"]
+_GROQ_FAST_CHAIN = ["openai/gpt-oss-20b", "qwen/qwen3.6-27b"]
 _GROQ_DEFAULT_CHAIN = [
-    "llama-3.3-70b-versatile",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "qwen/qwen3-32b",
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
 ]
 
 _CLAUDE_HAIKU = "claude-haiku-4-5-20251001"
@@ -90,15 +90,15 @@ def _route_model(message: str, requested: str | None) -> str:
     words = text.split()
 
     if len(words) <= 4 and text in _TURBO_PHRASES or text.rstrip("!.,?") in _TURBO_PHRASES:
-        return "llama-3.1-8b-instant"
+        return "openai/gpt-oss-20b"
 
     if any(kw in text for kw in _DEEP_KEYWORDS) or len(words) > 60:
-        return "llama-3.3-70b-versatile"
+        return "openai/gpt-oss-120b"
 
     if any(kw in text for kw in _SMART_KEYWORDS) or len(words) > 25:
-        return "qwen/qwen3-32b"
+        return "qwen/qwen3.8-27b"
 
-    return "llama-3.3-70b-versatile"
+    return "openai/gpt-oss-120b"
 
 
 def _get_fallback_chain(model: str) -> list[str]:
