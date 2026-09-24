@@ -88,7 +88,6 @@ curl -X POST http://localhost:8000/ingest \
 | Variable                 | Description                              |
 |--------------------------|------------------------------------------|
 | `GROQ_API_KEY`           | Groq API key (primary LLM)               |
-| `OPENAI_API_KEY`         | OpenAI key (deep/gpt-4o model)           |
 | `ANTHROPIC_API_KEY`      | Anthropic key (smart/claude model)       |
 | `LITELLM_MASTER_KEY`     | LiteLLM proxy auth key                   |
 | `LANGFUSE_PUBLIC_KEY`    | Langfuse Cloud public key                |

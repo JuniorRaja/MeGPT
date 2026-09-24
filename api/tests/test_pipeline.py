@@ -23,7 +23,7 @@ def _make_judge_mock(payload: dict):
     mock_resp.json.return_value = {
         "choices": [{"message": {"content": json.dumps(payload)}}],
         "usage": {"prompt_tokens": 50, "completion_tokens": 40},
-        "model": "llama-3.1-8b-instant",
+        "model": "openai/gpt-oss-20b",
     }
     mock_resp.headers = MagicMock()
     mock_resp.headers.get.return_value = None

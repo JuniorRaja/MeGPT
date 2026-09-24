@@ -29,11 +29,10 @@ function formatTime(date: Date): string {
 }
 
 function modelShortName(model: string): string {
-  if (model.includes("llama-4-scout")) return "Llama 4 Scout";
-  if (model.includes("llama-3.3-70b")) return "Llama 3.3 70B";
-  if (model.includes("llama-3.1-8b")) return "Llama 3.1 8B";
-  if (model.includes("qwen3-32b")) return "Qwen3 32B";
-  if (model.includes("allam-2-7b")) return "Allam 2 7B";
+  if (model.includes("gpt-oss-120b")) return "GPT-OSS 120B";
+  if (model.includes("gpt-oss-20b")) return "GPT-OSS 20B";
+  if (model.includes("qwen3.8-27b")) return "Qwen3.8 27B";
+  if (model.includes("qwen3.6-27b")) return "Qwen3.6 27B";
   if (model.includes("haiku")) return "Claude Haiku";
   if (model.includes("sonnet")) return "Claude Sonnet";
   if (model.includes("claude")) return "Claude";

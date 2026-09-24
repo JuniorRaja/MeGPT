@@ -11,12 +11,12 @@ interface ModelOption {
 
 const MODELS: ModelOption[] = [
   { id: "auto", label: "MeGPT", badge: "Auto" },
-  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
-  { id: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
-  { id: "qwen/qwen3-32b", label: "Qwen3 32B" },
+  { id: "openai/gpt-oss-120b", label: "GPT-OSS 120B" },
+  { id: "qwen/qwen3.8-27b", label: "Qwen3.8 27B" },
+  { id: "qwen/qwen3.6-27b", label: "Qwen3.6 27B" },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", locked: true },
   { id: "claude-sonnet-4-5-20251001", label: "Claude Sonnet 4.5", locked: true },
-  { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B", badge: "Fast" },
+  { id: "openai/gpt-oss-20b", label: "GPT-OSS 20B", badge: "Fast" },
 ];
 
 interface Props {

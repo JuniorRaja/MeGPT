@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     pocketbase_url: str = "http://localhost:8090"
 
     litellm_master_key: str = "sk-megpt-master-key"
-    default_model: str = "llama-3.3-70b-versatile"
+    default_model: str = "openai/gpt-oss-120b"
     embed_model: str = "nomic-ai/nomic-embed-text-v1.5"
 
     langfuse_public_key: str = ""

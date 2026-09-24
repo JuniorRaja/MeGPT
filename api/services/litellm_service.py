@@ -11,11 +11,10 @@ logger = logging.getLogger(__name__)
 
 # Price per 1M tokens (input, output) in USD — Groq published rates
 _PRICING: dict[str, tuple[float, float]] = {
-    "llama-3.1-8b-instant":                      (0.05,  0.08),
-    "allam-2-7b":                                 (0.02,  0.02),
-    "llama-3.3-70b-versatile":                    (0.59,  0.79),
-    "meta-llama/llama-4-scout-17b-16e-instruct":  (0.11,  0.34),
-    "qwen/qwen3-32b":                             (0.29,  0.59),
+    "openai/gpt-oss-20b":                         (0.10,  0.50),
+    "openai/gpt-oss-120b":                        (0.15,  0.75),
+    "qwen/qwen3.6-27b":                           (0.29,  0.59),
+    "qwen/qwen3.8-27b":                           (0.29,  0.59),
     "claude-haiku-4-5-20251001":                  (0.80,  4.00),
     "claude-sonnet-4-5-20251001":                 (3.00, 15.00),
 }
@@ -173,7 +172,7 @@ _JUDGE_PROMPT = (
     "If the query is already specific, keep it as-is. Max one sentence."
 )
 
-_JUDGE_MODEL = "llama-3.1-8b-instant"
+_JUDGE_MODEL = "openai/gpt-oss-20b"
 
 _JUDGE_FALLBACK = {
     "deflect": "My world revolves around one person — ask me about Prasanna.",
