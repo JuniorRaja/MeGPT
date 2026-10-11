@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     litellm_master_key: str = "sk-megpt-master-key"
     default_model: str = "openai/gpt-oss-120b"
-    embed_model: str = "nomic-ai/nomic-embed-text-v1.5"
+    embed_model: str = "nomic-ai/nomic-embed-text-v1.5-Q"
 
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
