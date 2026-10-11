@@ -25,7 +25,7 @@ MeGPT is a RAG-based chatbot that:
 | LLM Proxy   | LiteLLM                             |
 | Tracing     | Langfuse                            |
 | Storage     | PocketBase                          |
-| Embeddings  | fastembed (nomic-embed-text-v1.5)   |
+| Embeddings  | fastembed (nomic-embed-text-v1.5-Q) |
 | Infra       | Docker Compose                      |
 
 ---
